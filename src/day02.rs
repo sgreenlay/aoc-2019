@@ -52,6 +52,9 @@ pub fn run() {
     let mut found = false;
     for input in &inputs {
         for compare in &inputs {
+            if input == compare {
+                break;
+            }
             if input.len() != compare.len() {
                 break;
             }
