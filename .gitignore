@@ -1,0 +1,7 @@
+
+# Rust
+/target
+**/*.rs.bk
+
+# Advent of Code
+/data
