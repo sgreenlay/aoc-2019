@@ -17,27 +17,18 @@ pub fn run() {
         .expect("Can't read file");
     
     // Part 1
-    let mut sum = 0;
-    for input in &inputs {
-        // to find the fuel required for a module, take its mass, 
-        // divide by three, round down, and subtract 2.
-
-        let fuel = (input / 3) - 2;
-        sum += fuel;
-    }
+    let sum = inputs.iter().fold(0, |acc, x| acc + (x / 3) - 2);
     println!("{} fuel required", sum);
 
     // Part 2
-    let mut sum = 0;
-    for input in &inputs {
-        // to find the fuel required for a module, take its mass, 
-        // divide by three, round down, and subtract 2.
-
-        let mut fuel = (input / 3) - 2;
+    let sum = inputs.iter().fold(0, |acc, x| {
+        let mut local_sum = 0;
+        let mut fuel = (x / 3) - 2;
         while fuel > 0 {
-            sum += fuel;
+            local_sum += fuel;
             fuel = (fuel / 3) - 2;
         }
-    }
+        acc + local_sum
+    });
     println!("{} fuel required", sum);
 }
