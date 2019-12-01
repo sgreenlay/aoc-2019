@@ -9,7 +9,9 @@ use std::fs;
 
 use std::collections::HashMap;
 
-use scan_fmt;
+use regex::Regex;
+
+use lazy_static;
 
 struct Patch {
     id: u32,
@@ -56,10 +58,21 @@ fn read_inputs(filename: String) -> io::Result<Vec<Patch>> {
     let file_in = fs::File::open(filename)?;
     let file_reader = io::BufReader::new(file_in);
     Ok(file_reader.lines().filter_map(io::Result::ok).map(|line| {
-        // #A @ B,C: DxE
-        let (id, x, y, w, h) = scan_fmt!(&line, "#{d} @ {d},{d}: {d}x{d}", u32, u32, u32, u32, u32)
-            .expect("Invalid line");
-        Patch { id: id, x: x, y: y, w: w, h: h }
+        lazy_static! {
+            static ref LINE_RE: Regex = Regex::new(r"#(\d*) @ (\d*),(\d*): (\d*)x(\d*)").unwrap();
+        }
+        if LINE_RE.is_match(&line) {
+            for line_cap in LINE_RE.captures_iter(&line) {
+                let id: u32 = line_cap[1].parse().unwrap();
+                let x: u32 = line_cap[2].parse().unwrap();
+                let y: u32 = line_cap[3].parse().unwrap();
+                let w: u32 = line_cap[4].parse().unwrap();
+                let h: u32 = line_cap[5].parse().unwrap();
+                
+                return Patch { id: id, x: x, y: y, w: w, h: h }
+            }
+        }
+        panic!("Invalid input");
     }).collect())
 }
 

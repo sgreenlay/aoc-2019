@@ -9,8 +9,21 @@
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false
+            "environment": [
+                {
+                    "name": "RUST_BACKTRACE",
+                    "value" : "1",
+                }
+            ],
+            "externalConsole": false,
+            "logging": {
+                "exceptions": true,
+                "moduleLoad": false,
+                "programOutput": true,
+                "engineLogging": false,
+                "trace": true,
+                "traceResponse": false,
+            },
         }
     ]
 }
