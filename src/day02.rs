@@ -2,11 +2,11 @@
 use std::fs;
 
 fn load_program(filename : String) -> Vec<usize> {
-    let input = fs::read_to_string(filename)
-        .expect("Can't read file");
-
-    let values: Vec<&str> = input.split(',').collect();
-    let program: Vec<usize> = values.iter().map(|x| x.parse::<i32>().unwrap() as usize).collect();
+    let program: Vec<usize> = fs::read_to_string(filename)
+        .expect("Can't read file")
+        .split(',')
+        .map(|s| s.parse::<usize>().unwrap())
+        .collect();
 
     program
 }
