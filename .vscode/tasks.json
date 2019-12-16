@@ -2,24 +2,14 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "cargo",
-            "subcommand": "build",
-            "problemMatcher": [
-                "$rustc"
+            "label": "cargo build",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "build"
             ],
             "group": {
                 "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "type": "cargo",
-            "subcommand": "test",
-            "problemMatcher": [
-                "$rustc"
-            ],
-            "group": {
-                "kind": "test",
                 "isDefault": true
             }
         }
