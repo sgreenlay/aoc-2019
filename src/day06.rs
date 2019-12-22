@@ -38,6 +38,7 @@ fn path_to_root(p: &String, planets: &HashMap<String, String>) -> Vec<String> {
 pub fn run() {
     let inputs = read_inputs("data/day06.txt".to_string());
 
+    // Part 1
     let mut orbit_total = 0;
     let planets = inputs.keys();
     for p in planets {
@@ -45,4 +46,21 @@ pub fn run() {
         orbit_total += path.len();
     }
     println!("{}", orbit_total);
+
+    // Part 2
+    let mut you = path_to_root(&"YOU".to_string(), &inputs);
+    let mut santa = path_to_root(&"SAN".to_string(), &inputs);
+
+    you.reverse();
+    santa.reverse();
+
+    while you.first() == santa.first() {
+        if (you.len() == 0) || (santa.len() == 0) {
+            panic!("Something has gone wrong");
+        }
+        you.remove(0);
+        santa.remove(0);
+    }
+    let total_path = you.len() + santa.len();
+    println!("{}", total_path);
 }
