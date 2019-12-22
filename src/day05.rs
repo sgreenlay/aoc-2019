@@ -75,7 +75,7 @@ fn run_program(program : &Vec<i32>, inputs : &Vec<i32>) {
 
     let mut ip = 0;
     loop {
-        let instruction_size;
+        let mut instruction_size = 0;
 
         print!("[{}] ", ip);
 
@@ -149,21 +149,83 @@ fn run_program(program : &Vec<i32>, inputs : &Vec<i32>) {
                 // Opcode 5 is jump-if-true: if the first parameter is non-zero, 
                 // it sets the instruction pointer to the value from the second 
                 // parameter. Otherwise, it does nothing.
+
+                let load1 = output[ip + 1];
+                let load2 = output[ip + 2];
+
+                println!("JUMPIF ({}) {} {}", raw_i, load1, load2);
+
+                let p1 = get_parameter(load1, get_mode(&mode, 0), &output);
+                let p2 = get_parameter(load2, get_mode(&mode, 1), &output);
+
+                if p1 != 0 {
+                    ip = p2 as usize;
+                } else {
+                    instruction_size = 3;
+                }
             }
             6 => {
                 // Opcode 6 is jump-if-false: if the first parameter is zero, it 
                 // sets the instruction pointer to the value from the second 
                 // parameter. Otherwise, it does nothing.
+
+                let load1 = output[ip + 1];
+                let load2 = output[ip + 2];
+
+                println!("JUMPIF! ({}) {} {}", raw_i, load1, load2);
+
+                let p1 = get_parameter(load1, get_mode(&mode, 0), &output);
+                let p2 = get_parameter(load2, get_mode(&mode, 1), &output);
+
+                if p1 == 0 {
+                    ip = p2 as usize;
+                } else {
+                    instruction_size = 3;
+                }
             }
             7 => {
                 // Opcode 7 is less than: if the first parameter is less than the 
                 // second parameter, it stores 1 in the position given by the 
                 // third parameter. Otherwise, it stores 0.
+
+                let load1 = output[ip + 1];
+                let load2 = output[ip + 2];
+                let store = output[ip + 3] as usize;
+
+                println!("LT ({}) {} {}", raw_i, load1, load2);
+
+                let p1 = get_parameter(load1, get_mode(&mode, 0), &output);
+                let p2 = get_parameter(load2, get_mode(&mode, 1), &output);
+
+                if p1 < p2 {
+                    output[store] = 1;
+                } else {
+                    output[store] = 0;
+                }
+
+                instruction_size = 4;
             }
             8 => {
                 // Opcode 8 is equals: if the first parameter is equal to the second 
                 // parameter, it stores 1 in the position given by the third 
                 // parameter. Otherwise, it stores 0.
+
+                let load1 = output[ip + 1];
+                let load2 = output[ip + 2];
+                let store = output[ip + 3] as usize;
+
+                println!("EQ ({}) {} {}", raw_i, load1, load2);
+
+                let p1 = get_parameter(load1, get_mode(&mode, 0), &output);
+                let p2 = get_parameter(load2, get_mode(&mode, 1), &output);
+
+                if p1 == p2 {
+                    output[store] = 1;
+                } else {
+                    output[store] = 0;
+                }
+
+                instruction_size = 4;
             }
             99 => {
                 // Opcode 99 means that the program is finished and should 
