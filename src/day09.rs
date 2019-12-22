@@ -341,11 +341,23 @@ impl VirtualMachine {
 pub fn run() {
     let program = load_program("data/day09.txt".to_string());
 
+    // Part 1
     let mut vm = VirtualMachine::new(&program);
-    vm.debug = true;
-
     vm.input.push(1);
+    loop {
+        match vm.run() {
+            VirtualMachineState::Output(v) => {
+                println!("{}", v);
+            }
+            VirtualMachineState::Terminated => {
+                break;
+            }
+        }
+    }
     
+    // Part 2
+    vm = VirtualMachine::new(&program);
+    vm.input.push(2);
     loop {
         match vm.run() {
             VirtualMachineState::Output(v) => {
