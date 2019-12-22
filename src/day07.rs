@@ -1,0 +1,280 @@
+
+use std::fs;
+
+fn load_program(filename : String) -> Vec<i32> {
+    let program: Vec<i32> = fs::read_to_string(filename)
+        .expect("Can't read file")
+        .split(',')
+        .map(|s| s.parse::<i32>().unwrap())
+        .collect();
+
+    program
+}
+
+fn decode_instruction(i: u32) -> (u32, Vec<u32>) {
+    // Parameter modes are stored in the same value as the instruction's opcode. 
+    // The opcode is a two-digit number based only on the ones and tens digit of 
+    // the value, that is, the opcode is the rightmost two digits of the first 
+    // value in an instruction. Parameter modes are single digits, one per 
+    // parameter, read right-to-left from the opcode: the first parameter's mode 
+    // is in the hundreds digit, the second parameter's mode is in the thousands 
+    // digit, the third parameter's mode is in the ten-thousands digit, and so on.
+    // Any missing modes are 0.
+
+    let mut digits: Vec<u32> = i.to_string().chars().map(|d| d.to_digit(10).unwrap()).collect();
+    digits.reverse();
+
+    let mut i: u32 = 0;
+    let mut modes: Vec<u32> = Vec::new();
+
+    let mut count = 0;
+    for digit in digits {
+        if count == 0 {
+            i = digit;
+        } else if count == 1 {
+            i += digit * 10;
+        } else {
+            if (digit != 0) && (digit != 1) {
+                panic!("Invalid mode");
+            }   
+            modes.push(digit);
+        }
+        count += 1;
+    }
+
+    (i, modes)
+}
+
+fn get_parameter(p: i32, m: u32, program : &Vec<i32>) -> i32 {
+    match m {
+        0 => {
+            // mode 0, position mode, causes the parameter to be interpreted as a position
+            let pos = p as usize;
+            program[pos]
+        }
+        1 => {
+            // mode 1, immediate mode, causes a parameter is interpreted as a value
+            p
+        }
+        _ => {
+            panic!("Invalid mode");
+        }
+    }
+}
+
+fn get_mode(mode: &Vec<u32>, i: usize) -> u32 {
+    if i >= mode.len() {
+        return 0;
+    }
+    mode[i]
+}
+
+fn run_program(program : &Vec<i32>, inputs : &Vec<i32>) -> Vec<i32> {
+    let mut memory : Vec<i32> = program.clone();
+    let mut input : Vec<i32> = inputs.clone();
+
+    let mut output: Vec<i32> = Vec::new();
+
+    let mut ip = 0;
+    loop {
+        let mut instruction_size = 0;
+        let (i, mode) = decode_instruction(memory[ip] as u32);
+        match i {
+            1 => {
+                // Opcode 1 adds together numbers read from two positions 
+                // and stores the result in a third position.
+                
+                // The three integers immediately after the opcode tell 
+                // you these three positions - the first two indicate the 
+                // positions from which you should read the input values, 
+                // and the third indicates the position at which the memory 
+                // should be stored.
+
+                let load1 = memory[ip + 1];
+                let load2 = memory[ip + 2];
+                let store = memory[ip + 3] as usize;
+
+                let p1 = get_parameter(load1, get_mode(&mode, 0), &memory);
+                let p2 = get_parameter(load2, get_mode(&mode, 1), &memory);
+
+                memory[store] = p1 + p2;
+
+                instruction_size = 4;
+            }
+            2 => {
+                // Opcode 2 works exactly like opcode 1, except it multiplies 
+                // the two inputs instead of adding them.
+
+                let load1 = memory[ip + 1];
+                let load2 = memory[ip + 2];
+                let store = memory[ip + 3] as usize;
+
+                let p1 = get_parameter(load1, get_mode(&mode, 0), &memory);
+                let p2 = get_parameter(load2, get_mode(&mode, 1), &memory);
+
+                memory[store] = p1 * p2;
+
+                instruction_size = 4;
+            }
+            3 => {
+                // Opcode 3 takes a single integer as input and saves it to the 
+                // position given by its only parameter.
+
+                let store = memory[ip + 1] as usize;
+
+                memory[store] = input.remove(0);
+
+                instruction_size = 2;
+            }
+            4 => {
+                // Opcode 4 memorys the value of its only parameter.
+
+                let get = memory[ip + 1] as usize;
+
+                output.push(memory[get]);
+
+                instruction_size = 2;
+            }
+            5 => {
+                // Opcode 5 is jump-if-true: if the first parameter is non-zero, 
+                // it sets the instruction pointer to the value from the second 
+                // parameter. Otherwise, it does nothing.
+
+                let load1 = memory[ip + 1];
+                let load2 = memory[ip + 2];
+
+                let p1 = get_parameter(load1, get_mode(&mode, 0), &memory);
+                let p2 = get_parameter(load2, get_mode(&mode, 1), &memory);
+
+                if p1 != 0 {
+                    ip = p2 as usize;
+                } else {
+                    instruction_size = 3;
+                }
+            }
+            6 => {
+                // Opcode 6 is jump-if-false: if the first parameter is zero, it 
+                // sets the instruction pointer to the value from the second 
+                // parameter. Otherwise, it does nothing.
+
+                let load1 = memory[ip + 1];
+                let load2 = memory[ip + 2];
+
+                let p1 = get_parameter(load1, get_mode(&mode, 0), &memory);
+                let p2 = get_parameter(load2, get_mode(&mode, 1), &memory);
+
+                if p1 == 0 {
+                    ip = p2 as usize;
+                } else {
+                    instruction_size = 3;
+                }
+            }
+            7 => {
+                // Opcode 7 is less than: if the first parameter is less than the 
+                // second parameter, it stores 1 in the position given by the 
+                // third parameter. Otherwise, it stores 0.
+
+                let load1 = memory[ip + 1];
+                let load2 = memory[ip + 2];
+                let store = memory[ip + 3] as usize;
+
+                let p1 = get_parameter(load1, get_mode(&mode, 0), &memory);
+                let p2 = get_parameter(load2, get_mode(&mode, 1), &memory);
+
+                if p1 < p2 {
+                    memory[store] = 1;
+                } else {
+                    memory[store] = 0;
+                }
+
+                instruction_size = 4;
+            }
+            8 => {
+                // Opcode 8 is equals: if the first parameter is equal to the second 
+                // parameter, it stores 1 in the position given by the third 
+                // parameter. Otherwise, it stores 0.
+
+                let load1 = memory[ip + 1];
+                let load2 = memory[ip + 2];
+                let store = memory[ip + 3] as usize;
+
+                let p1 = get_parameter(load1, get_mode(&mode, 0), &memory);
+                let p2 = get_parameter(load2, get_mode(&mode, 1), &memory);
+
+                if p1 == p2 {
+                    memory[store] = 1;
+                } else {
+                    memory[store] = 0;
+                }
+
+                instruction_size = 4;
+            }
+            99 => {
+                // Opcode 99 means that the program is finished and should 
+                // immediately halt.
+                break;
+            }
+            _ => {
+                // Encountering an unknown opcode means something went wrong.
+                panic!("Unknown opcode")
+            }
+        }
+        // After an instruction finishes, the instruction pointer increases by 
+        // the number of values in the instruction.
+        ip += instruction_size;
+    }
+
+    output
+}
+
+// https://en.wikipedia.org/wiki/Heap%27s_algorithm
+fn generate_all_permutations<T : Clone>(n: usize, arr: Vec<T>) -> Vec<Vec<T>> {
+    let mut a = arr.clone();
+    
+    let mut c: Vec<usize> = Vec::new();
+    for _ in 0..n {
+        c.push(0);
+    }
+
+    let mut output: Vec<Vec<T>> = Vec::new();
+    output.push(a.clone());
+
+    let mut i = 0;
+    while i < n {
+        if c[i] < i {
+            if i % 2 == 0 {
+                a.swap(0, i);
+            } else {
+                a.swap(c[i], i);
+            }
+            output.push(a.clone());
+            c[i] += 1;
+            i = 0;
+        } else {
+            c[i] = 0;
+            i += 1;
+        }
+    }
+
+    return output;
+}
+
+pub fn run() {
+    let program = load_program("data/day07.txt".to_string());
+
+    // Part 1
+    let phase_settings = generate_all_permutations(5, vec![0, 1, 2, 3, 4]);
+    let mut largest_output = 0;
+    for setting in phase_settings {
+        let mut output = 0;
+        for amp in setting {
+            let input = vec![amp, output];
+            let outputs = run_program(&program, &input);
+            output = *outputs.last().expect("Output expected");
+            if output > largest_output {
+                largest_output = output;
+            }
+        }
+    }
+    println!("{}", largest_output);
+}
