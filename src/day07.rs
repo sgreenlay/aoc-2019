@@ -69,162 +69,172 @@ fn get_mode(mode: &Vec<u32>, i: usize) -> u32 {
     mode[i]
 }
 
-fn run_program(program : &Vec<i32>, inputs : &Vec<i32>) -> Vec<i32> {
-    let mut memory : Vec<i32> = program.clone();
-    let mut input : Vec<i32> = inputs.clone();
+struct VM {
+    ip: usize,
+    memory: Vec<i32>,
+    input: Vec<i32>
+}
 
-    let mut output: Vec<i32> = Vec::new();
+enum VmState {
+    Output(i32),
+    Terminated
+}
 
-    let mut ip = 0;
-    loop {
-        let mut instruction_size = 0;
-        let (i, mode) = decode_instruction(memory[ip] as u32);
-        match i {
-            1 => {
-                // Opcode 1 adds together numbers read from two positions 
-                // and stores the result in a third position.
-                
-                // The three integers immediately after the opcode tell 
-                // you these three positions - the first two indicate the 
-                // positions from which you should read the input values, 
-                // and the third indicates the position at which the memory 
-                // should be stored.
+impl VM {
+    pub fn run(&mut self) -> VmState {
+        let mut ret: Option<VmState> = None;
+        while ret.is_none() {
+            let mut instruction_size = 0;
+            let (i, mode) = decode_instruction(self.memory[self.ip] as u32);
+            match i {
+                1 => {
+                    // Opcode 1 adds together numbers read from two positions 
+                    // and stores the result in a third position.
+                    
+                    // The three integers immediately after the opcode tell 
+                    // you these three positions - the first two indicate the 
+                    // positions from which you should read the input values, 
+                    // and the third indicates the position at which the memory 
+                    // should be stored.
 
-                let load1 = memory[ip + 1];
-                let load2 = memory[ip + 2];
-                let store = memory[ip + 3] as usize;
+                    let load1 = self.memory[self.ip + 1];
+                    let load2 = self.memory[self.ip + 2];
+                    let store = self.memory[self.ip + 3] as usize;
 
-                let p1 = get_parameter(load1, get_mode(&mode, 0), &memory);
-                let p2 = get_parameter(load2, get_mode(&mode, 1), &memory);
+                    let p1 = get_parameter(load1, get_mode(&mode, 0), &self.memory);
+                    let p2 = get_parameter(load2, get_mode(&mode, 1), &self.memory);
 
-                memory[store] = p1 + p2;
+                    self.memory[store] = p1 + p2;
 
-                instruction_size = 4;
-            }
-            2 => {
-                // Opcode 2 works exactly like opcode 1, except it multiplies 
-                // the two inputs instead of adding them.
+                    instruction_size = 4;
+                }
+                2 => {
+                    // Opcode 2 works exactly like opcode 1, except it multiplies 
+                    // the two inputs instead of adding them.
 
-                let load1 = memory[ip + 1];
-                let load2 = memory[ip + 2];
-                let store = memory[ip + 3] as usize;
+                    let load1 = self.memory[self.ip + 1];
+                    let load2 = self.memory[self.ip + 2];
+                    let store = self.memory[self.ip + 3] as usize;
 
-                let p1 = get_parameter(load1, get_mode(&mode, 0), &memory);
-                let p2 = get_parameter(load2, get_mode(&mode, 1), &memory);
+                    let p1 = get_parameter(load1, get_mode(&mode, 0), &self.memory);
+                    let p2 = get_parameter(load2, get_mode(&mode, 1), &self.memory);
 
-                memory[store] = p1 * p2;
+                    self.memory[store] = p1 * p2;
 
-                instruction_size = 4;
-            }
-            3 => {
-                // Opcode 3 takes a single integer as input and saves it to the 
-                // position given by its only parameter.
+                    instruction_size = 4;
+                }
+                3 => {
+                    // Opcode 3 takes a single integer as input and saves it to the 
+                    // position given by its only parameter.
 
-                let store = memory[ip + 1] as usize;
+                    let store = self.memory[self.ip + 1] as usize;
 
-                memory[store] = input.remove(0);
+                    self.memory[store] = self.input.remove(0);
 
-                instruction_size = 2;
-            }
-            4 => {
-                // Opcode 4 memorys the value of its only parameter.
+                    instruction_size = 2;
+                }
+                4 => {
+                    // Opcode 4 memorys the value of its only parameter.
 
-                let get = memory[ip + 1] as usize;
+                    let get = self.memory[self.ip + 1] as usize;
 
-                output.push(memory[get]);
+                    ret = Some(VmState::Output(self.memory[get]));
 
-                instruction_size = 2;
-            }
-            5 => {
-                // Opcode 5 is jump-if-true: if the first parameter is non-zero, 
-                // it sets the instruction pointer to the value from the second 
-                // parameter. Otherwise, it does nothing.
+                    instruction_size = 2;
+                }
+                5 => {
+                    // Opcode 5 is jump-if-true: if the first parameter is non-zero, 
+                    // it sets the instruction pointer to the value from the second 
+                    // parameter. Otherwise, it does nothing.
 
-                let load1 = memory[ip + 1];
-                let load2 = memory[ip + 2];
+                    let load1 = self.memory[self.ip + 1];
+                    let load2 = self.memory[self.ip + 2];
 
-                let p1 = get_parameter(load1, get_mode(&mode, 0), &memory);
-                let p2 = get_parameter(load2, get_mode(&mode, 1), &memory);
+                    let p1 = get_parameter(load1, get_mode(&mode, 0), &self.memory);
+                    let p2 = get_parameter(load2, get_mode(&mode, 1), &self.memory);
 
-                if p1 != 0 {
-                    ip = p2 as usize;
-                } else {
-                    instruction_size = 3;
+                    if p1 != 0 {
+                        self.ip = p2 as usize;
+                    } else {
+                        instruction_size = 3;
+                    }
+                }
+                6 => {
+                    // Opcode 6 is jump-if-false: if the first parameter is zero, it 
+                    // sets the instruction pointer to the value from the second 
+                    // parameter. Otherwise, it does nothing.
+
+                    let load1 = self.memory[self.ip + 1];
+                    let load2 = self.memory[self.ip + 2];
+
+                    let p1 = get_parameter(load1, get_mode(&mode, 0), &self.memory);
+                    let p2 = get_parameter(load2, get_mode(&mode, 1), &self.memory);
+
+                    if p1 == 0 {
+                        self.ip = p2 as usize;
+                    } else {
+                        instruction_size = 3;
+                    }
+                }
+                7 => {
+                    // Opcode 7 is less than: if the first parameter is less than the 
+                    // second parameter, it stores 1 in the position given by the 
+                    // third parameter. Otherwise, it stores 0.
+
+                    let load1 = self.memory[self.ip + 1];
+                    let load2 = self.memory[self.ip + 2];
+                    let store = self.memory[self.ip + 3] as usize;
+
+                    let p1 = get_parameter(load1, get_mode(&mode, 0), &self.memory);
+                    let p2 = get_parameter(load2, get_mode(&mode, 1), &self.memory);
+
+                    if p1 < p2 {
+                        self.memory[store] = 1;
+                    } else {
+                        self.memory[store] = 0;
+                    }
+
+                    instruction_size = 4;
+                }
+                8 => {
+                    // Opcode 8 is equals: if the first parameter is equal to the second 
+                    // parameter, it stores 1 in the position given by the third 
+                    // parameter. Otherwise, it stores 0.
+
+                    let load1 = self.memory[self.ip + 1];
+                    let load2 = self.memory[self.ip + 2];
+                    let store = self.memory[self.ip + 3] as usize;
+
+                    let p1 = get_parameter(load1, get_mode(&mode, 0), &self.memory);
+                    let p2 = get_parameter(load2, get_mode(&mode, 1), &self.memory);
+
+                    if p1 == p2 {
+                        self.memory[store] = 1;
+                    } else {
+                        self.memory[store] = 0;
+                    }
+
+                    instruction_size = 4;
+                }
+                99 => {
+                    // Opcode 99 means that the program is finished and should 
+                    // immediately halt.
+
+                    ret = Some(VmState::Terminated);
+
+                    break;
+                }
+                _ => {
+                    // Encountering an unknown opcode means something went wrong.
+                    panic!("Unknown opcode")
                 }
             }
-            6 => {
-                // Opcode 6 is jump-if-false: if the first parameter is zero, it 
-                // sets the instruction pointer to the value from the second 
-                // parameter. Otherwise, it does nothing.
-
-                let load1 = memory[ip + 1];
-                let load2 = memory[ip + 2];
-
-                let p1 = get_parameter(load1, get_mode(&mode, 0), &memory);
-                let p2 = get_parameter(load2, get_mode(&mode, 1), &memory);
-
-                if p1 == 0 {
-                    ip = p2 as usize;
-                } else {
-                    instruction_size = 3;
-                }
-            }
-            7 => {
-                // Opcode 7 is less than: if the first parameter is less than the 
-                // second parameter, it stores 1 in the position given by the 
-                // third parameter. Otherwise, it stores 0.
-
-                let load1 = memory[ip + 1];
-                let load2 = memory[ip + 2];
-                let store = memory[ip + 3] as usize;
-
-                let p1 = get_parameter(load1, get_mode(&mode, 0), &memory);
-                let p2 = get_parameter(load2, get_mode(&mode, 1), &memory);
-
-                if p1 < p2 {
-                    memory[store] = 1;
-                } else {
-                    memory[store] = 0;
-                }
-
-                instruction_size = 4;
-            }
-            8 => {
-                // Opcode 8 is equals: if the first parameter is equal to the second 
-                // parameter, it stores 1 in the position given by the third 
-                // parameter. Otherwise, it stores 0.
-
-                let load1 = memory[ip + 1];
-                let load2 = memory[ip + 2];
-                let store = memory[ip + 3] as usize;
-
-                let p1 = get_parameter(load1, get_mode(&mode, 0), &memory);
-                let p2 = get_parameter(load2, get_mode(&mode, 1), &memory);
-
-                if p1 == p2 {
-                    memory[store] = 1;
-                } else {
-                    memory[store] = 0;
-                }
-
-                instruction_size = 4;
-            }
-            99 => {
-                // Opcode 99 means that the program is finished and should 
-                // immediately halt.
-                break;
-            }
-            _ => {
-                // Encountering an unknown opcode means something went wrong.
-                panic!("Unknown opcode")
-            }
+            // After an instruction finishes, the instruction pointer increases by 
+            // the number of values in the instruction.
+            self.ip += instruction_size;
         }
-        // After an instruction finishes, the instruction pointer increases by 
-        // the number of values in the instruction.
-        ip += instruction_size;
+        ret.unwrap()
     }
-
-    output
 }
 
 // https://en.wikipedia.org/wiki/Heap%27s_algorithm
@@ -268,12 +278,49 @@ pub fn run() {
     for setting in phase_settings {
         let mut output = 0;
         for amp in setting {
-            let input = vec![amp, output];
-            let outputs = run_program(&program, &input);
-            output = *outputs.last().expect("Output expected");
-            if output > largest_output {
-                largest_output = output;
+            let mut vm = VM{ ip: 0, memory: program.clone(), input: vec![amp, output] };
+            match vm.run() {
+                VmState::Output(v) => {
+                    output = v;
+                    if output > largest_output {
+                        largest_output = output;
+                    }
+                }
+                VmState::Terminated => {
+                    panic!("Unexpected end of program");
+                }
             }
+        }
+    }
+    println!("{}", largest_output);
+
+    // Part 2
+    let phase_settings = generate_all_permutations(5, vec![5, 6, 7, 8, 9]);
+    let mut largest_output = 0;
+    for setting in phase_settings {
+        let mut vms: Vec<VM> = Vec::new();
+        for amp in setting {
+            vms.push(VM{ ip: 0, memory: program.clone(), input: vec![amp] })
+        }
+
+        let mut curr = 0;
+        let mut output = 0;
+        loop {
+            let vm = &mut vms[curr];
+            vm.input.push(output);
+
+            match vm.run() {
+                VmState::Output(v) => {
+                    output = v;
+                    curr = (curr + 1) % vms.len();
+                }
+                VmState::Terminated => {
+                    break;
+                }
+            }
+        }
+        if output > largest_output {
+            largest_output = output;
         }
     }
     println!("{}", largest_output);
