@@ -2,12 +2,22 @@
 use std::io::BufRead;
 use std::io;
 
+use std::fmt;
 use std::fs;
+
+use std::f64::consts;
+use std::collections::HashSet;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 struct Point {	
     x: i32,	
     y: i32,	
+}
+
+impl fmt::Display for Point {	
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {	
+        write!(f, "{},{}", self.x, self.y)	
+    }	
 }
 
 fn read_inputs(filename: String) -> Vec<Point> {
@@ -51,37 +61,86 @@ fn is_point_between(a: Point, b: Point, c: Point) -> bool {
     return true;
 }
 
-pub fn run() {
-    let inputs = read_inputs("data/day10.txt".to_string());
-
-    let mut max_count = 0;
-    for i in 0..inputs.len() {
-        let mut count = 0;
-        let start = inputs[i];
-        for j in 0..inputs.len() {
-            if i == j {
+fn get_closest(start: Point, inputs: &Vec<Point>) -> Vec<usize> {
+    let mut closest: Vec<usize> = Vec::new();
+    for j in 0..inputs.len() {
+        let end = inputs[j];
+        if start == end {
+            continue;
+        }
+        let mut is_closest = true;
+        for k in 0..inputs.len() {
+            let p = inputs[k];
+            if (p == start) || (p == end) {
                 continue;
             }
-            let end = inputs[j];
-            let mut is_closest = true;
-            for k in 0..inputs.len() {
-                if (k == i) || (k == j) {
-                    continue;
-                }
-                let p = inputs[k];
-
-                if is_point_between(start, end, p) {
-                    is_closest = false;
-                    break;
-                }
-            }
-            if is_closest {
-                count += 1;
+            if is_point_between(start, end, p) {
+                is_closest = false;
+                break;
             }
         }
-        if count > max_count {
-            max_count = count;
+        if is_closest {
+            closest.push(j);
         }
     }
-    println!("{}", max_count);
+
+    closest
+}
+
+fn angle_to(start: Point, end: Point) -> f64 {
+    let dx = (end.x as f64) - (start.x as f64);
+    let dy = (end.y as f64) - (start.y as f64);
+
+    let mut deg = -dy.atan2(dx) * 180.0 / consts::PI;
+
+    if (deg <= 90.0) && (deg >= 0.0) {
+        deg = (deg - 90.0).abs();
+    } else if deg < 0.0 {
+        deg = deg.abs() + 90.0;
+    } else {
+        deg = 450.0 - deg;
+    }
+
+    return deg;
+}
+
+pub fn run() {
+    let mut inputs = read_inputs("data/day10.txt".to_string());
+
+    // Part 1
+    let mut max_count = 0;
+    let mut max_asteroid = 0;
+    for i in 0..inputs.len() {
+        let closest = get_closest(inputs[i], &inputs);
+        if closest.len() > max_count {
+            max_count = closest.len();
+            max_asteroid = i;
+        }
+    }
+
+    let station = inputs[max_asteroid];
+    println!("{} @ {}", max_count, station);
+
+    // Part 2
+    let mut remaining_asteroids = 200;
+    loop {
+        let closest = get_closest(station, &inputs);
+        if closest.len() < remaining_asteroids {
+            remaining_asteroids -= closest.len();
+            
+            let remove: HashSet<Point> = closest.iter().map(|&i| inputs[i]).collect();
+            inputs.retain(|p| !remove.contains(p));
+        } else {
+            let mut angles: Vec<(usize, Point, f64)> = closest.iter().map(|&i| {
+                let p = inputs[i];
+                let angle = angle_to(station, p);
+                (i, p, angle)
+            }).collect();
+            angles.sort_by(|a, b| { a.2.partial_cmp(&b.2).unwrap() });
+
+            let two_hundredth = angles[remaining_asteroids - 1].0;
+            println!("{}", inputs[two_hundredth]);
+            break;
+        }
+    }
 }
