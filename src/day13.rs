@@ -1,4 +1,5 @@
 
+use std::cmp;
 use std::fmt;
 use std::fs;
 
@@ -357,6 +358,19 @@ impl fmt::Display for Point {
     }	
 }
 
+impl Ord for Point {	
+    fn cmp(&self, other: &Self) -> cmp::Ordering {	
+        self.y.cmp(&other.y)	
+            .then_with(|| self.x.cmp(&other.x))
+    }	
+}	
+
+impl PartialOrd for Point {	
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {	
+        Some(self.cmp(other))	
+    }	
+}
+
 enum State {
     OutputX,
     OutputY,
@@ -398,13 +412,25 @@ pub fn run() {
         }
     }
 
+    let min: &Point = screen.keys().min_by_key(|&x| x).unwrap();
+    let max: &Point = screen.keys().max_by_key(|&x| x).unwrap();
+    for y in min.y..=max.y {
+        for x in min.x..=max.x {
+            let p = Point{x: x, y: y};
+            if screen.contains_key(&p) && (screen[&p] != 0) {
+                print!("{}", screen[&p]);
+            } else {
+                print!(" ");
+            }
+        }
+        println!("");
+    }
+
     let mut block_count = 0;
     for tile in screen.values() {
         if tile == &2 {
             block_count += 1;
         }
     }
-
-    println!("{}, {} blocks", screen.len(), block_count);
-
+    println!("{} blocks", block_count);
 }
