@@ -377,18 +377,38 @@ enum State {
     OutputTile,
 }
 
-pub fn run() {
-    let program = load_program("data/day13.txt".to_string());
-
+fn run_game(program: &Vec<i128>, play: bool) -> (HashMap<Point, i128>, i128) {
     let mut screen: HashMap<Point, i128> = HashMap::new();
+
+    let mut score = 0;
+    let mut ball = Point{ x: 0, y: 0 };
+    let mut paddle = Point{ x: 0, y: 0 };
+
     let mut state = State::OutputX;
     let mut p = Point{x: 0, y: 0};
 
-    let mut vm = VirtualMachine::new(&program);
+    let mut vm = VirtualMachine::new(program);
+
+    if play {
+        // Memory address 0 represents the number of quarters that have been 
+        // inserted; set it to 2 to play for free.
+        vm.memory.insert(0, 2);
+    }
+
     loop {
         match vm.run() {
             VirtualMachineState::WaitForInput => {
-                panic!("Not expecting any input");
+                // If the joystick is in the neutral position, provide 0.
+                // If the joystick is tilted to the left, provide -1.
+                // If the joystick is tilted to the right, provide 1.
+
+                if paddle.x < ball.x {
+                    vm.input.push(1);
+                } else if paddle.x > ball.x {
+                    vm.input.push(-1);
+                } else {
+                    vm.input.push(0);
+                }
             }
             VirtualMachineState::Output(v) => {
                 match state {
@@ -401,7 +421,24 @@ pub fn run() {
                         state = State::OutputTile;
                     }
                     State::OutputTile => {
-                        screen.insert(p, v);
+                        if (p.x == -1) && (p.y == 0) {
+                            // When three output instructions specify X=-1, Y=0, 
+                            // the third output instruction is not a tile; the 
+                            // value instead specifies the new score to show in 
+                            // the segment display.
+                            score = v;
+                        } else {
+                            match v {
+                                4 => {
+                                    ball = p;
+                                }
+                                3 => {
+                                    paddle = p;
+                                }
+                                _ => {}
+                            }
+                            screen.insert(p, v);
+                        }
                         state = State::OutputX;
                     }
                 }
@@ -412,25 +449,24 @@ pub fn run() {
         }
     }
 
-    let min: &Point = screen.keys().min_by_key(|&x| x).unwrap();
-    let max: &Point = screen.keys().max_by_key(|&x| x).unwrap();
-    for y in min.y..=max.y {
-        for x in min.x..=max.x {
-            let p = Point{x: x, y: y};
-            if screen.contains_key(&p) && (screen[&p] != 0) {
-                print!("{}", screen[&p]);
-            } else {
-                print!(" ");
-            }
-        }
-        println!("");
-    }
+    (screen, score)
+}
 
+pub fn run() {
+    let program = load_program("data/day13.txt".to_string());
+
+    // Part 1
+    let part1 = run_game(&program, false).0;
     let mut block_count = 0;
-    for tile in screen.values() {
+    for tile in part1.values() {
         if tile == &2 {
             block_count += 1;
         }
     }
     println!("{} blocks", block_count);
+
+    // Part 2
+    let part2 = run_game(&program, true).1;
+    println!("{}", part2);
+
 }
