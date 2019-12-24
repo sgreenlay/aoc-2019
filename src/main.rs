@@ -1,6 +1,9 @@
 
-mod day11;
-use day11::run;
+#[macro_use]
+extern crate lazy_static;
+
+mod day12;
+use day12::run;
 
 fn main() {
     run();
