@@ -1,4 +1,5 @@
 
+use std::cmp;
 use std::fmt;
 use std::fs;
 
@@ -13,6 +14,19 @@ struct Point {
 impl fmt::Display for Point {	
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {	
         write!(f, "{},{}", self.x, self.y)	
+    }	
+}
+
+impl Ord for Point {	
+    fn cmp(&self, other: &Self) -> cmp::Ordering {	
+        self.y.cmp(&other.y)	
+            .then_with(|| self.x.cmp(&other.x))
+    }	
+}	
+
+impl PartialOrd for Point {	
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {	
+        Some(self.cmp(other))	
     }	
 }
 
@@ -420,18 +434,16 @@ enum State {
     OutputOrientationChange
 }
 
-pub fn run() {
-    let program = load_program("data/day11.txt".to_string());
-
+fn run_robot(program: &Vec<i128>, starting: i128) -> HashMap<Point, i128> {
     let mut map: HashMap<Point, i128> = HashMap::new();
     let mut robot: (Point, Direction, State) = (
         Point{ x: 0, y: 0 },
         Direction::Up,
         State::OutputColor
     );
+    map.insert(robot.0, starting);
 
-    // Part 1
-    let mut vm = VirtualMachine::new(&program);
+    let mut vm = VirtualMachine::new(program);
     loop {
         match vm.run() {
             VirtualMachineState::WaitForInput => {
@@ -488,5 +500,29 @@ pub fn run() {
             }
         }
     }
-    println!("{}", map.keys().count());
+    map
+}
+
+pub fn run() {
+    let program = load_program("data/day11.txt".to_string());
+
+    // Part 1
+    let part1 = run_robot(&program, 0);
+    println!("{}", part1.keys().count());
+
+    // Part 2
+    let part2 = run_robot(&program, 1);
+    let min: &Point = part2.keys().min_by_key(|&x| x).unwrap();
+    let max: &Point = part2.keys().max_by_key(|&x| x).unwrap();
+    for y in min.y..=max.y {
+        for x in min.x..=max.x {
+            let p = Point{x: x, y: y};
+            if part2.contains_key(&p) && (part2[&p] == 1) {
+                print!("X");
+            } else {
+                print!(" ");
+            }
+        }
+        println!("");
+    }
 }
