@@ -105,23 +105,19 @@ fn get_number_of_steps(chemical: &String, recipies: &HashMap<String, Recipe>, vi
     steps
 }
 
-pub fn run() {
-    let recipies = read_inputs("data/day14.txt".to_string());
-
+fn get_fuel_cost(fuel_quantity: i128, recipies: &HashMap<String, Recipe>) -> i128
+{
     let ore = "ORE".to_string();
     let fuel = "FUEL".to_string();
     
     let mut steps: HashMap<String, i128> = HashMap::new();
     let fuel_steps = get_number_of_steps(&fuel, &recipies, &mut steps);
 
-    println!("{} steps to {}", fuel_steps, fuel);
-
     let mut have: HashMap<&String, i128> = HashMap::new();
     let mut extras: HashMap<&String, i128> = HashMap::new();
 
-    have.insert(&fuel, 1);
+    have.insert(&fuel, fuel_quantity);
 
-    let mut step = 0;
     let mut ore_quantity = 0;
 
     while !have.is_empty()
@@ -161,9 +157,6 @@ pub fn run() {
         let recipe = &recipies[need];
         let iterations: i128 = ((remaining as f64) / (recipe.output.quantity as f64)).ceil() as i128;
 
-        println!("[{}] {} x [{}]", step, iterations, recipe);
-        step += 1;
-
         for i in &recipe.inputs {
             if i.chemical.cmp(&ore) == cmp::Ordering::Equal {
                 ore_quantity += i.quantity * iterations;
@@ -185,5 +178,51 @@ pub fn run() {
         }
     }
 
-    println!("{}", ore_quantity);
+    ore_quantity
+}
+
+pub fn run() {
+    let recipies = read_inputs("data/day14.txt".to_string());
+
+    // Part 1
+    let cost_of_one_fuel = get_fuel_cost(1, &recipies);
+    println!("{}", cost_of_one_fuel);
+
+    // Part 2
+    let ore: i128 = 1000000000000;
+
+    let search = |start, increment: &dyn Fn(i128) -> i128| -> (i128, i128) {
+        let mut f = start;
+        let mut prev_f = start;
+        let mut o = get_fuel_cost(f, &recipies);
+
+        while o < ore {
+            prev_f = f;
+            f = increment(f);
+            o = get_fuel_cost(f, &recipies);
+        }
+
+        (prev_f, f)
+    };
+
+    let mut start = 1;
+    let increment = |a| a * 10;
+    let (lower, upper) = search(start, &increment);
+
+    let window_count = 10;
+
+    start = lower;
+    let mut window_size = (upper - lower) / window_count;
+
+    while window_size > 1 {
+        let increment = |a| a + window_size;
+        let (lower, upper) = search(start, &increment);
+
+        window_size = (upper - lower) / window_count;
+        start = lower;
+    }
+
+    let increment = |a| a + 1;
+    let (lower, _) = search(start, &increment);
+    println!("{}", lower);
 }
