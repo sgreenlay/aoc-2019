@@ -2,8 +2,8 @@
 #[macro_use]
 extern crate lazy_static;
 
-mod day16;
-use day16::run;
+mod day17;
+use day17::run;
 
 fn main() {
     run();
