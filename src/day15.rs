@@ -5,6 +5,7 @@ use std::fs;
 use std::ops;
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 fn load_program(filename : String) -> Vec<i128> {
     fs::read_to_string(filename)
@@ -521,13 +522,13 @@ fn run_program(program: &Vec<i128>) -> HashMap<Point, i128> {
 
 fn bredth_first_search_map(start: &Point, map: &HashMap<Point, i128>, stop: &mut dyn FnMut(Point, i128) -> bool) {
     let mut frontier: Vec<(Point, i128)> = Vec::new();
-    let mut visited: HashMap<Point, i128> = HashMap::new();
+    let mut visited: HashSet<Point> = HashSet::new();
 
     if !map.contains_key(start) {
         panic!("Invalid start point");
     }
 
-    visited.insert(*start, map[start]);
+    visited.insert(*start);
     frontier.push((*start, 0));
 
     while !frontier.is_empty() {
@@ -535,7 +536,7 @@ fn bredth_first_search_map(start: &Point, map: &HashMap<Point, i128>, stop: &mut
 
         for d in DIRECTIONS.iter() {
             let p_next = p.0 + *d.1;
-            if !visited.contains_key(&p_next) && map.contains_key(&p_next) {
+            if !visited.contains(&p_next) && map.contains_key(&p_next) {
                 let distance = p.1 + 1;
 
                 let next = map[&p_next];
@@ -544,7 +545,7 @@ fn bredth_first_search_map(start: &Point, map: &HashMap<Point, i128>, stop: &mut
                 }
 
                 frontier.push((p_next, distance));
-                visited.insert(p_next, distance);
+                visited.insert(p_next);
 
                 if stop(p_next, distance) {
                     break;
