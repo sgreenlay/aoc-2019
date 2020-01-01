@@ -437,7 +437,7 @@ fn run_program(program: &Vec<i128>) -> HashMap<Point, i128> {
     let mut path: Vec<(Direction, Point)> = Vec::new();
 
     let mut map: HashMap<Point, i128> = HashMap::new();
-    map.insert(current, -1);
+    map.insert(current, 0);
 
     loop {
         match vm.run() {
@@ -505,19 +505,9 @@ fn run_program(program: &Vec<i128>) -> HashMap<Point, i128> {
                     map.insert(current, v);
                 }
 
-                match v {
-                    0 => {
-                        let backtrack = path.pop().unwrap();
-                        current = backtrack.1;
-                    },
-                    1 => {
-                    },
-                    2 => {
-                        println!("Found oxygen at {}", current);
-                    },
-                    _ => {
-                        panic!("Unexpected output");
-                    }
+                if v == 0 {
+                    let backtrack = path.pop().unwrap();
+                    current = backtrack.1;
                 }
             }
             VirtualMachineState::Terminated => {
@@ -529,45 +519,16 @@ fn run_program(program: &Vec<i128>) -> HashMap<Point, i128> {
     map
 }
 
-fn draw_map(map: &HashMap<Point, i128>) {
-    let min: &Point = map.keys().min_by_key(|&x| x).unwrap();
-    let max: &Point = map.keys().max_by_key(|&x| x).unwrap();
-    for y in min.y..=max.y {
-        for x in min.x..=max.x {
-            let p = Point{x: x, y: y};
-            if map.contains_key(&p) {
-                match map[&p] {
-                    -1 => {
-                        print!("o");
-                    }
-                    0 => {
-                        print!("#");
-                    },
-                    1 => {
-                        print!(".");
-                    },
-                    2 => {
-                        print!("x");
-                    }
-                    _ => {
-                        panic!("Unknown");
-                    }
-                }
-            } else {
-                print!(" ");
-            }
-        }
-        println!("");
-    }
-}
-
-fn shortest_path(map: &HashMap<Point, i128>) -> i128 {
+fn bredth_first_search_map(start: &Point, map: &HashMap<Point, i128>, stop: &mut dyn FnMut(Point, i128) -> bool) {
     let mut frontier: Vec<(Point, i128)> = Vec::new();
     let mut visited: HashMap<Point, i128> = HashMap::new();
 
-    let start = Point{x: 0, y: 0};
-    visited.insert(start, 0);
-    frontier.push((start, 0));
+    if !map.contains_key(start) {
+        panic!("Invalid start point");
+    }
+
+    visited.insert(*start, map[start]);
+    frontier.push((*start, 0));
 
     while !frontier.is_empty() {
         let p = frontier.remove(0);
@@ -576,29 +537,49 @@ fn shortest_path(map: &HashMap<Point, i128>) -> i128 {
             let p_next = p.0 + *d.1;
             if !visited.contains_key(&p_next) && map.contains_key(&p_next) {
                 let distance = p.1 + 1;
-                match map[&p_next] {
-                    1 => {
-                        frontier.push((p_next, distance));
-                        visited.insert(p_next, distance);
-                    },
-                    2 => {
-                        println!("Found oxygen at {} with shortest distance {}", p_next, distance);
-                        return distance;
-                    }
-                    _ => {}
+
+                let next = map[&p_next];
+                if next == 0 {
+                    continue;
+                }
+
+                frontier.push((p_next, distance));
+                visited.insert(p_next, distance);
+
+                if stop(p_next, distance) {
+                    break;
                 }
             }
         }
     }
-
-    panic!("Didn't reach oxygen");
 }
 
 pub fn run() {
     let program = load_program("data/day15.txt".to_string());
+    let map = run_program(&program);
 
     // Part 1
-    let map = run_program(&program);
-    draw_map(&map);
-    shortest_path(&map);
+    let start = Point{x: 0, y: 0};
+    let mut oxygen = Point{x: 0, y: 0};
+    let mut min_distance = 0;
+    bredth_first_search_map(&start, &map, &mut |p, distance| -> bool {
+        if map[&p] == 2 {
+            oxygen = p.clone();
+            min_distance = distance;
+            true
+        } else {
+            false
+        }
+    });
+    println!("Shortest path to oxygen @ {} = {}", oxygen, min_distance);
+    
+    // Part 2
+    let mut max_distance = 0;
+    bredth_first_search_map(&oxygen, &map, &mut |_, distance| -> bool {
+        if distance > max_distance {
+            max_distance = distance;
+        }
+        false
+    });
+    println!("Max distance from oxygen is {}", max_distance);
 }
