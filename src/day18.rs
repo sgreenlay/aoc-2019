@@ -71,7 +71,7 @@ fn bredth_first_search(start: &(usize, usize), map: &Vec<Vec<char>>, stop: &mut 
     }
 }
 
-fn shortest_path(start: &(usize, usize), end: &(usize, usize), map: &Vec<Vec<char>>) -> Vec<(usize, usize)> {
+fn shortest_path(start: &(usize, usize), end: &(usize, usize), map: &Vec<Vec<char>>) -> Option<Vec<(usize, usize)>> {
     let (height, width) = (map.len(), map[0].len());
 
     let mut paths: HashMap<(usize, usize), u128> = HashMap::new();
@@ -81,7 +81,7 @@ fn shortest_path(start: &(usize, usize), end: &(usize, usize), map: &Vec<Vec<cha
     });
 
     if !paths.contains_key(&end) {
-        panic!("Couldn't find a path from {},{} to {},{}", start.0, start.1, end.0, end.1);
+        return None;
     }
 
     let mut path: Vec<(usize, usize)> = Vec::new();
@@ -122,27 +122,33 @@ fn shortest_path(start: &(usize, usize), end: &(usize, usize), map: &Vec<Vec<cha
     }
 
     path.reverse();
-    path
+    Some(path)
 }
 
 fn shortest_distance_to_all_keys(
-    current: &char,
+    current: &Vec<char>,
     visited: &Vec<char>,
     remaining: &Vec<char>,
     paths: &HashMap<(char, char), (usize, Vec<char>)>,
     cache: &mut HashMap<String, usize>
-) -> usize {
+) -> Option<usize> {
 
-    let v_p: String = remaining.iter().collect();
-    let r_p: String = visited.iter().collect();
+    let v_p: String = visited.iter().collect();
+    let c_p: String = current.iter().collect();
+    let r_p: String = remaining.iter().collect();
 
-    let hash = format!("{}-{}-{}", v_p, current, r_p).to_string();
+    let hash = format!("{}-{}-{}", v_p, c_p, r_p).to_string();
     if cache.contains_key(&hash) {
-        return cache[&hash];
+        return Some(cache[&hash]);
     }
     
     let has_key = |d: &char| -> bool  {
         let k: char = d.to_lowercase().collect::<Vec<_>>()[0];
+        for c in current {
+            if c == &k {
+                return true;
+            }
+        }
         for v in visited {
             if v == &k {
                 return true;
@@ -151,61 +157,85 @@ fn shortest_distance_to_all_keys(
         false
     };
 
-    let reachable_keys: Vec<char> = remaining.iter().filter_map(|k| -> Option<char> {
-        let current_k: (char, char) = (*current, *k);
-        let path = &paths[&current_k];
-        let mut door_in_way = false;
+    
+    let mut min_distance: Option<usize> = None;
+    for &c in current {
+        let reachable_keys: Vec<char> = remaining.iter().filter_map(|k| -> Option<char> {
+            let current_k: (char, char) = (c, *k);
 
-        for d in &path.1 {
-            if !has_key(d) {
-                door_in_way = true;
-                break;
+            if !paths.contains_key(&current_k) {
+                return None;
+            }
+
+            let path = &paths[&current_k];
+            let mut door_in_way = false;
+
+            for d in &path.1 {
+                if !has_key(d) {
+                    door_in_way = true;
+                    break;
+                }
+            }
+
+            if !door_in_way {
+                Some(*k)
+            } else {
+                None
+            }
+        }).collect();
+
+        if reachable_keys.len() == 0 {
+            continue;
+        }
+
+        let mut visited_k = visited.clone();
+        visited_k.push(c);
+        visited_k.sort();
+
+        for k in reachable_keys {
+            let mut distance = paths[&(c, k)].0;
+
+            if remaining.len() > 1 {
+                let mut remaining_k = remaining.clone();
+                remaining_k.retain(|&r| r != k);
+
+                let current_k: Vec<char> = current.iter().map(|r| -> char {
+                    if r == &c {
+                        k
+                    } else {
+                        *r
+                    }
+                }).collect();
+
+                let remaining_distance = shortest_distance_to_all_keys(&current_k, &visited_k, &remaining_k, paths, cache);
+                if remaining_distance.is_none() {
+                    continue;
+                }
+
+                distance += remaining_distance.unwrap();
+            }
+
+            if min_distance.is_none() || (distance < min_distance.unwrap()) {
+                min_distance = Some(distance);
             }
         }
-
-        if !door_in_way {
-            Some(*k)
-        } else {
-            None
-        }
-    }).collect();
-
-    if reachable_keys.len() == 0 {
-        panic!("Can't reach any keys");
     }
 
-    let mut min_distance: Option<usize> = None;
-    for k in reachable_keys {
-        let mut distance = paths[&(*current, k)].0;
-        if remaining.len() > 1 {
-            let mut visited_k = visited.clone();
-            let mut remaining_k = remaining.clone();
-            
-            visited_k.push(k);
-            visited_k.sort();
-
-            remaining_k.retain(|&r| r != k);
-
-            distance += shortest_distance_to_all_keys(&k, &visited_k, &remaining_k, paths, cache);
-        }
-
-        if min_distance.is_none() || (distance < min_distance.unwrap()) {
-            min_distance = Some(distance);
-        }
+    if min_distance.is_some() {
+        let d = min_distance.unwrap();
+        cache.insert(hash, d);
+        Some(d)
+    } else {
+        None
     }
-
-    let d = min_distance.unwrap();
-    cache.insert(hash, d);
-    d
 }
 
-pub fn run() {
-    let map = load_input("data/day18.txt".to_string());
+fn solve(map: &Vec<Vec<char>>) -> usize {
     let (height, width) = (map.len(), map[0].len());
 
     let mut doors: HashMap<char, (usize, usize)> = HashMap::new();
     let mut keys: HashMap<char, (usize, usize)> = HashMap::new();
-    let mut start = (0, 0);
+    let mut robots: HashMap<char, (usize, usize)> = HashMap::new();
 
     for y in 0..height {
         for x in 0..width {
@@ -214,14 +244,19 @@ pub fn run() {
                 doors.insert(tile, (x, y));
             } else if tile.is_ascii_lowercase() {
                 keys.insert(tile, (x, y));
-            } else if tile == '@' {
-                start = (x, y);
+            } else if (tile != '#') && (tile != '.') {
+                robots.insert(tile, (x, y));
             }
         }
     }
 
-    let a_to_b = |a, b| -> (usize, Vec<char>) {
-        let path_a_to_b = shortest_path(a, b, &map);
+    let a_to_b = |a, b| -> Option<(usize, Vec<char>)> {
+        let is_path_a_to_b = shortest_path(a, b, &map);
+        if is_path_a_to_b.is_none() {
+            return None;
+        }
+
+        let path_a_to_b = is_path_a_to_b.unwrap();
         let doors_between_a_and_b = path_a_to_b.iter().filter_map(|p| -> Option<char> {
                 let tile = map[p.1][p.0];
                 if tile.is_ascii_uppercase() {
@@ -230,26 +265,74 @@ pub fn run() {
                     None
                 }
             }).collect();
-        (path_a_to_b.len() - 1, doors_between_a_and_b)
+        Some((path_a_to_b.len() - 1, doors_between_a_and_b))
     };
 
     let mut paths: HashMap<(char, char), (usize, Vec<char>)> = HashMap::new();
     for a in &keys {
-        paths.insert(('@', *a.0), a_to_b(&start, &a.1));
+        for r in &robots {
+            let p = a_to_b(&r.1, &a.1);
+            if p.is_some() {
+                paths.insert((*r.0, *a.0), p.unwrap());
+            }
+        }
         for b in &keys {
             if a.0 == b.0 {
                 continue;
             }
-            paths.insert((*a.0, *b.0), a_to_b(&a.1, &b.1));
+            let p = a_to_b(&a.1, &b.1);
+            if p.is_some() {
+                paths.insert((*a.0, *b.0), p.unwrap());
+            }
         }
     }
 
     let mut all_keys: Vec<char> = keys.keys().map(|k| *k).collect();
     all_keys.sort();
 
+    let mut all_robots: Vec<char> = robots.keys().map(|k| *k).collect();
+    all_robots.sort();
+
     let mut cache: HashMap<String, usize> = HashMap::new();
 
-    let total_distance = shortest_distance_to_all_keys(&'@', &vec![], &all_keys, &paths, &mut cache);
+    shortest_distance_to_all_keys(&all_robots, &vec![], &all_keys, &paths, &mut cache).unwrap()
+}
 
-    println!("{}", total_distance);
+pub fn run() {
+    let mut map = load_input("data/day18.txt".to_string());
+
+    // Part 1
+    let part1 = solve(&map);
+    println!("{}", part1);
+
+    // Part 2
+    let (height, width) = (map.len(), map[0].len());
+    let mut found_robot = false;
+    for y in 0..height {
+        for x in 0..width {
+            let tile = map[y][x];
+            if tile == '@' {
+                map[y-1][x-1] = '^';
+                map[y-1][x]   = '#';
+                map[y-1][x+1] = '>';
+
+                map[y][x-1] = '#';
+                map[y][x]   = '#';
+                map[y][x+1] = '#';
+
+                map[y+1][x-1] = '@';
+                map[y+1][x]   = '#';
+                map[y+1][x+1] = '<';
+
+                found_robot = true;
+                break;
+            }
+        }
+        if found_robot {
+            break;
+        }
+    }
+
+    let part2 = solve(&map);
+    println!("{}", part2);
 }
