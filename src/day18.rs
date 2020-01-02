@@ -1,8 +1,12 @@
 
+use std::cmp;
 use std::fs;
+use std::hash;
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+
+use elapsed::measure_time;
 
 fn load_input(filename : String) -> Vec<Vec<char>> {
     fs::read_to_string(filename)
@@ -125,11 +129,34 @@ fn shortest_path(start: &(usize, usize), end: &(usize, usize), map: &Vec<Vec<cha
     path
 }
 
+struct Cache<'a, K: cmp::Eq + hash::Hash + Copy, V: Clone> {
+    cache: HashMap<K, V>,
+    miss: &'a mut dyn FnMut(K) -> V,
+}
+
+impl<'a, K: cmp::Eq + hash::Hash + Copy, V: Clone> Cache<'a, K, V>
+{
+    fn new(miss: &'a mut dyn FnMut(K) -> V) -> Cache<K, V> {
+        Cache {
+            cache: HashMap::new(),
+            miss: miss,
+        }
+    }
+
+    fn get(&mut self, k: K) -> V {
+        if !self.cache.contains_key(&k) {
+            let v: V = (self.miss)(k);
+            self.cache.insert(k, v);
+        }
+        self.cache[&k].clone()
+    }
+}
+
 fn shortest_distance_to_all_keys(
     current: &char,
     visited: &Vec<char>,
     remaining: &Vec<char>,
-    paths: &HashMap<(char, char), (usize, Vec<char>)>,
+    path_cache: &mut Cache<(char, char), (usize, Vec<char>)>,
     cache: &mut HashMap<String, usize>
 ) -> usize {
 
@@ -143,6 +170,11 @@ fn shortest_distance_to_all_keys(
     
     let has_key = |d: &char| -> bool  {
         let k: char = d.to_lowercase().collect::<Vec<_>>()[0];
+
+        if &k == current {
+            return true;
+        }
+
         for v in visited {
             if v == &k {
                 return true;
@@ -153,7 +185,8 @@ fn shortest_distance_to_all_keys(
 
     let reachable_keys: Vec<char> = remaining.iter().filter_map(|k| -> Option<char> {
         let current_k: (char, char) = (*current, *k);
-        let path = &paths[&current_k];
+        let path = path_cache.get(current_k);
+
         let mut door_in_way = false;
 
         for d in &path.1 {
@@ -174,19 +207,21 @@ fn shortest_distance_to_all_keys(
         panic!("Can't reach any keys");
     }
 
+    let mut visited_k = visited.clone();
+    visited_k.push(*current);
+    visited_k.sort();
+
     let mut min_distance: Option<usize> = None;
     for k in reachable_keys {
-        let mut distance = paths[&(*current, k)].0;
-        if remaining.len() > 1 {
-            let mut visited_k = visited.clone();
-            let mut remaining_k = remaining.clone();
-            
-            visited_k.push(k);
-            visited_k.sort();
+        let current_k = (*current, k);
 
+        let (mut distance, _) = path_cache.get(current_k);
+
+        if remaining.len() > 1 {
+            let mut remaining_k = remaining.clone();
             remaining_k.retain(|&r| r != k);
 
-            distance += shortest_distance_to_all_keys(&k, &visited_k, &remaining_k, paths, cache);
+            distance += shortest_distance_to_all_keys(&k, &visited_k, &remaining_k, path_cache, cache);
         }
 
         if min_distance.is_none() || (distance < min_distance.unwrap()) {
@@ -220,8 +255,11 @@ pub fn run() {
         }
     }
 
+    let mut all_keys: Vec<char> = keys.keys().map(|k| *k).collect();
+    all_keys.sort();
+
     let a_to_b = |a, b| -> (usize, Vec<char>) {
-        let path_a_to_b = shortest_path(a, b, &map);
+        let path_a_to_b = shortest_path(&a, &b, &map);
         let doors_between_a_and_b = path_a_to_b.iter().filter_map(|p| -> Option<char> {
                 let tile = map[p.1][p.0];
                 if tile.is_ascii_uppercase() {
@@ -233,23 +271,22 @@ pub fn run() {
         (path_a_to_b.len() - 1, doors_between_a_and_b)
     };
 
-    let mut paths: HashMap<(char, char), (usize, Vec<char>)> = HashMap::new();
-    for a in &keys {
-        paths.insert(('@', *a.0), a_to_b(&start, &a.1));
-        for b in &keys {
-            if a.0 == b.0 {
-                continue;
-            }
-            paths.insert((*a.0, *b.0), a_to_b(&a.1, &b.1));
-        }
-    }
+    // Part 1
+    let mut path_cache_miss = |k: (char, char)| -> (usize, Vec<char>) {
+        let (a, b) = k;
 
-    let mut all_keys: Vec<char> = keys.keys().map(|k| *k).collect();
-    all_keys.sort();
+        let p_a = if a == '@' { start } else { keys[&a] };
+        let p_b = if b == '@' { start } else { keys[&b] };
+
+        let path = a_to_b(p_a, p_b);
+        path.clone()
+    };
+    let mut path_cache = Cache::new(&mut path_cache_miss);
 
     let mut cache: HashMap<String, usize> = HashMap::new();
+    let (elapsed, total_distance) = measure_time(|| {
+        shortest_distance_to_all_keys(&'@', &vec![], &all_keys, &mut path_cache, &mut cache)
+    });
 
-    let total_distance = shortest_distance_to_all_keys(&'@', &vec![], &all_keys, &paths, &mut cache);
-
-    println!("{}", total_distance);
+    println!("Compute {} in {}", total_distance, elapsed);
 }
