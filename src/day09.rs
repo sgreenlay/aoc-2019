@@ -1,9 +1,8 @@
-
 use std::fs;
 
 use crate::intcode::{VirtualMachine, VirtualMachineState};
 
-fn load_program(filename : String) -> Vec<i128> {
+fn load_program(filename: String) -> Vec<i128> {
     fs::read_to_string(filename)
         .expect("Can't read file")
         .split(',')

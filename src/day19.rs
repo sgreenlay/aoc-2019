@@ -1,11 +1,10 @@
-
 use std::fs;
 
 use crate::intcode::{VirtualMachine, VirtualMachineState};
 
 use std::collections::HashMap;
 
-fn load_program(filename : String) -> Vec<i128> {
+fn load_program(filename: String) -> Vec<i128> {
     fs::read_to_string(filename)
         .expect("Can't read file")
         .split(',')
@@ -52,10 +51,10 @@ pub fn run() {
         for x in 0..50 {
             let output = run_program(&program, (x, y));
             match output {
-                0 => {},
+                0 => {}
                 1 => {
                     affected_points += 1;
-                },
+                }
                 _ => {
                     panic!("Invalid output");
                 }
@@ -65,7 +64,6 @@ pub fn run() {
     println!("{} affected points", affected_points);
 
     // Part 2
-
     let mut scanned: HashMap<(usize, usize), i128> = HashMap::new();
     let mut scan = |x: usize, y: usize| -> i128 {
         let p = (x, y);
@@ -81,11 +79,11 @@ pub fn run() {
             'x' => {
                 x = start;
                 y = other;
-            },
+            }
             'y' => {
                 y = start;
                 x = other;
-            },
+            }
             _ => {
                 panic!("Invalid axis");
             }
@@ -104,19 +102,17 @@ pub fn run() {
         loop {
             let output = scan(x, y);
             match mode {
-                ScanMode::Unknown => {
-                    match output {
-                        0 => {
-                            mode = ScanMode::Forwards;
-                        },
-                        1 => {
-                            mode = ScanMode::Backwards;
-                        },
-                        _ => {
-                            panic!("Invalid output");
-                        }
+                ScanMode::Unknown => match output {
+                    0 => {
+                        mode = ScanMode::Forwards;
                     }
-                }
+                    1 => {
+                        mode = ScanMode::Backwards;
+                    }
+                    _ => {
+                        panic!("Invalid output");
+                    }
+                },
                 ScanMode::Backwards => {
                     match output {
                         0 => {
@@ -124,11 +120,11 @@ pub fn run() {
                                 'x' => {
                                     first = x + 1;
                                     x = start;
-                                },
+                                }
                                 'y' => {
                                     first = y + 1;
                                     y = start;
-                                },
+                                }
                                 _ => {
                                     panic!("Invalid axis");
                                 }
@@ -137,8 +133,8 @@ pub fn run() {
                             mode = ScanMode::Forwards;
                             found_signal = true;
                             continue;
-                        },
-                        1 => {},
+                        }
+                        1 => {}
                         _ => {
                             panic!("Invalid output");
                         }
@@ -146,10 +142,10 @@ pub fn run() {
                     match axis {
                         'x' => {
                             x -= 1;
-                        },
+                        }
                         'y' => {
                             y -= 1;
-                        },
+                        }
                         _ => {
                             panic!("Invalid axis");
                         }
@@ -162,33 +158,33 @@ pub fn run() {
                                 match axis {
                                     'x' => {
                                         last = x - 1;
-                                    },
+                                    }
                                     'y' => {
                                         last = y - 1;
-                                    },
+                                    }
                                     _ => {
                                         panic!("Invalid axis");
                                     }
                                 }
                                 break;
                             }
-                        },
+                        }
                         1 => {
                             if !found_signal {
                                 match axis {
                                     'x' => {
                                         first = x;
-                                    },
+                                    }
                                     'y' => {
                                         first = y;
-                                    },
+                                    }
                                     _ => {
                                         panic!("Invalid axis");
                                     }
                                 }
                                 found_signal = true;
                             }
-                        },
+                        }
                         _ => {
                             panic!("Invalid output");
                         }
@@ -196,10 +192,10 @@ pub fn run() {
                     match axis {
                         'x' => {
                             x += 1;
-                        },
+                        }
                         'y' => {
                             y += 1;
-                        },
+                        }
                         _ => {
                             panic!("Invalid axis");
                         }
@@ -225,9 +221,8 @@ pub fn run() {
             if (end_x - start_x + 1) < 100 {
                 true
             } else {
-                let scan_bottom_left = run_program(&program, 
-                    ((end_x - 99) as i128,
-                     (y + 99) as i128));
+                let scan_bottom_left =
+                    run_program(&program, ((end_x - 99) as i128, (y + 99) as i128));
                 (scan_bottom_left != 1)
             }
         } {

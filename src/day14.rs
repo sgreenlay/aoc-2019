@@ -1,6 +1,5 @@
-
-use std::io::BufRead;
 use std::io;
+use std::io::BufRead;
 
 use std::cmp;
 use std::fmt;
@@ -20,63 +19,70 @@ struct Ingredient {
 
 impl Ingredient {
     fn from_string(s: String) -> Ingredient {
-        lazy_static! {	
+        lazy_static! {
             // # XXX
-            static ref LINE_RE: Regex = Regex::new(r"([\d]+) (.*)").unwrap();	
+            static ref LINE_RE: Regex = Regex::new(r"([\d]+) (.*)").unwrap();
         }
-        if LINE_RE.is_match(&s) {	
-            for line_cap in LINE_RE.captures_iter(&s) {	
-                let quantity: i128 = line_cap[1].parse().unwrap();	
+        if LINE_RE.is_match(&s) {
+            for line_cap in LINE_RE.captures_iter(&s) {
+                let quantity: i128 = line_cap[1].parse().unwrap();
                 let chemical = &line_cap[2];
-                return Ingredient{ chemical: chemical.to_string(), quantity: quantity };
-            }	
+                return Ingredient {
+                    chemical: chemical.to_string(),
+                    quantity: quantity,
+                };
+            }
         }
         panic!("Invalid input");
     }
 }
 
-impl fmt::Display for Ingredient {	
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {	
-        write!(f, "{} {}", self.quantity, self.chemical)	
-    }	
+impl fmt::Display for Ingredient {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {}", self.quantity, self.chemical)
+    }
 }
 
 struct Recipe {
     inputs: Vec<Ingredient>,
-    output: Ingredient
+    output: Ingredient,
 }
 
-impl fmt::Display for Recipe {	
+impl fmt::Display for Recipe {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.inputs.first().unwrap())?;
         for i in 1..self.inputs.len() {
             write!(f, ", {}", self.inputs[i])?;
         }
         write!(f, " => {}", self.output)
-    }	
+    }
 }
 
 fn read_inputs(filename: String) -> HashMap<String, Recipe> {
     let file_in = fs::File::open(filename).expect("Can't open file");
     let file_reader = io::BufReader::new(file_in);
-    
-    let recipe_list: Vec<Recipe> = file_reader.lines().filter_map(io::Result::ok).map(|line| {
-        let split_by_produce: Vec<&str> = line.split(" => ").collect();
-        if split_by_produce.len() != 2 {
-            panic!("Invalid line");
-        }
 
-        let inputs: Vec<&str> = split_by_produce[0].split(", ").collect();
-        let output: &str = split_by_produce[1];
+    let recipe_list: Vec<Recipe> = file_reader
+        .lines()
+        .filter_map(io::Result::ok)
+        .map(|line| {
+            let split_by_produce: Vec<&str> = line.split(" => ").collect();
+            if split_by_produce.len() != 2 {
+                panic!("Invalid line");
+            }
 
-        Recipe {
-            inputs: inputs.iter().map(|s| {
-                Ingredient::from_string(s.to_string())
-            }).collect(),
-            output: Ingredient::from_string(output.to_string())
-        }
-    }).collect();
+            let inputs: Vec<&str> = split_by_produce[0].split(", ").collect();
+            let output: &str = split_by_produce[1];
 
+            Recipe {
+                inputs: inputs
+                    .iter()
+                    .map(|s| Ingredient::from_string(s.to_string()))
+                    .collect(),
+                output: Ingredient::from_string(output.to_string()),
+            }
+        })
+        .collect();
     let mut recipies: HashMap<String, Recipe> = HashMap::new();
     for r in recipe_list {
         let k = r.output.chemical.clone();
@@ -85,8 +91,11 @@ fn read_inputs(filename: String) -> HashMap<String, Recipe> {
     recipies
 }
 
-fn get_number_of_steps(chemical: &String, recipies: &HashMap<String, Recipe>, visited: &mut HashMap<String, i128>) -> i128
-{
+fn get_number_of_steps(
+    chemical: &String,
+    recipies: &HashMap<String, Recipe>,
+    visited: &mut HashMap<String, i128>,
+) -> i128 {
     let recipe = &recipies[chemical];
     let ore = "ORE".to_string();
 
@@ -105,11 +114,9 @@ fn get_number_of_steps(chemical: &String, recipies: &HashMap<String, Recipe>, vi
     steps
 }
 
-fn get_fuel_cost(fuel_quantity: i128, recipies: &HashMap<String, Recipe>) -> i128
-{
+fn get_fuel_cost(fuel_quantity: i128, recipies: &HashMap<String, Recipe>) -> i128 {
     let ore = "ORE".to_string();
     let fuel = "FUEL".to_string();
-    
     let mut steps: HashMap<String, i128> = HashMap::new();
     let fuel_steps = get_number_of_steps(&fuel, &recipies, &mut steps);
 
@@ -120,8 +127,7 @@ fn get_fuel_cost(fuel_quantity: i128, recipies: &HashMap<String, Recipe>) -> i12
 
     let mut ore_quantity = 0;
 
-    while !have.is_empty()
-    {   
+    while !have.is_empty() {
         // Find the chemical we have with the most steps to create ORE
         let need = have.keys().fold(&ore, |a, &b| -> &String {
             if (a == &ore) || (steps[b] > steps[a]) {
@@ -155,7 +161,8 @@ fn get_fuel_cost(fuel_quantity: i128, recipies: &HashMap<String, Recipe>) -> i12
         }
 
         let recipe = &recipies[need];
-        let iterations: i128 = ((remaining as f64) / (recipe.output.quantity as f64)).ceil() as i128;
+        let iterations: i128 =
+            ((remaining as f64) / (recipe.output.quantity as f64)).ceil() as i128;
 
         for i in &recipe.inputs {
             if i.chemical.cmp(&ore) == cmp::Ordering::Equal {
@@ -168,7 +175,6 @@ fn get_fuel_cost(fuel_quantity: i128, recipies: &HashMap<String, Recipe>) -> i12
                 have.insert(&i.chemical, new_quantity);
             }
         }
-        
         let mut excess = iterations * recipe.output.quantity - remaining;
         if excess > 0 {
             if extras.contains_key(&recipe.output.chemical) {

@@ -1,7 +1,6 @@
-
 use std::fs;
 
-fn load_image(filename : String) -> Vec<u32> {
+fn load_image(filename: String) -> Vec<u32> {
     fs::read_to_string(filename)
         .expect("Can't read file")
         .chars()
@@ -24,14 +23,20 @@ pub fn run() {
     // Part 1
     let mut counts = (layer_size, 0, 0);
     for i in 0..layer_count {
-        let layer: &[u32] = &image[i*layer_size..(i+1)*layer_size];
+        let layer: &[u32] = &image[i * layer_size..(i + 1) * layer_size];
 
         let zero_count = count_digits(layer, 0);
-        if zero_count < counts.0 { 
+        if zero_count < counts.0 {
             counts = (zero_count, count_digits(layer, 1), count_digits(layer, 2));
         }
     }
-    println!("0:{} 1:{} 2:{} {}", counts.0, counts.1, counts.2, counts.1 * counts.2);
+    println!(
+        "0:{} 1:{} 2:{} {}",
+        counts.0,
+        counts.1,
+        counts.2,
+        counts.1 * counts.2
+    );
 
     // Part 2
     let mut final_image: Vec<u32> = Vec::new();
@@ -41,7 +46,7 @@ pub fn run() {
 
     for p in 0..layer_size {
         for l in 0..layer_count {
-            let px = image[l*layer_size + p];
+            let px = image[l * layer_size + p];
             if px != 2 {
                 final_image[p] = px;
                 break;
@@ -51,7 +56,7 @@ pub fn run() {
 
     for y in 0..height {
         for x in 0..width {
-            match final_image[y*width + x] {
+            match final_image[y * width + x] {
                 0 => {
                     print!(" ");
                 }

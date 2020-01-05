@@ -1,21 +1,21 @@
-
-use std::io::BufRead;
 use std::io;
+use std::io::BufRead;
 
 use std::fs;
 
 fn read_inputs(filename: String) -> io::Result<Vec<i32>> {
     let file_in = fs::File::open(filename)?;
     let file_reader = io::BufReader::new(file_in);
-    Ok(file_reader.lines().filter_map(io::Result::ok).map(|line| {
-        line.parse::<i32>().unwrap()
-    }).collect())
+    Ok(file_reader
+        .lines()
+        .filter_map(io::Result::ok)
+        .map(|line| line.parse::<i32>().unwrap())
+        .collect())
 }
 
 pub fn run() {
-    let inputs = read_inputs("data/day01.txt".to_string())
-        .expect("Can't read file");
-    
+    let inputs = read_inputs("data/day01.txt".to_string()).expect("Can't read file");
+
     // Part 1
     let sum = inputs.iter().fold(0, |acc, x| acc + (x / 3) - 2);
     println!("{} fuel required", sum);

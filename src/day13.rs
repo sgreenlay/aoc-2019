@@ -1,4 +1,3 @@
-
 use std::cmp;
 use std::fmt;
 use std::fs;
@@ -7,7 +6,7 @@ use crate::intcode::{VirtualMachine, VirtualMachineState};
 
 use std::collections::HashMap;
 
-fn load_program(filename : String) -> Vec<i128> {
+fn load_program(filename: String) -> Vec<i128> {
     fs::read_to_string(filename)
         .expect("Can't read file")
         .split(',')
@@ -16,28 +15,27 @@ fn load_program(filename : String) -> Vec<i128> {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-struct Point {	
-    x: i128,	
-    y: i128,	
+struct Point {
+    x: i128,
+    y: i128,
 }
 
-impl fmt::Display for Point {	
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {	
-        write!(f, "{},{}", self.x, self.y)	
-    }	
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{},{}", self.x, self.y)
+    }
 }
 
-impl Ord for Point {	
-    fn cmp(&self, other: &Self) -> cmp::Ordering {	
-        self.y.cmp(&other.y)	
-            .then_with(|| self.x.cmp(&other.x))
-    }	
-}	
+impl Ord for Point {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.y.cmp(&other.y).then_with(|| self.x.cmp(&other.x))
+    }
+}
 
-impl PartialOrd for Point {	
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {	
-        Some(self.cmp(other))	
-    }	
+impl PartialOrd for Point {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 enum State {
@@ -50,16 +48,16 @@ fn run_game(program: &Vec<i128>, play: bool) -> (HashMap<Point, i128>, i128) {
     let mut screen: HashMap<Point, i128> = HashMap::new();
 
     let mut score = 0;
-    let mut ball = Point{ x: 0, y: 0 };
-    let mut paddle = Point{ x: 0, y: 0 };
+    let mut ball = Point { x: 0, y: 0 };
+    let mut paddle = Point { x: 0, y: 0 };
 
     let mut state = State::OutputX;
-    let mut p = Point{x: 0, y: 0};
+    let mut p = Point { x: 0, y: 0 };
 
     let mut vm = VirtualMachine::new(program);
 
     if play {
-        // Memory address 0 represents the number of quarters that have been 
+        // Memory address 0 represents the number of quarters that have been
         // inserted; set it to 2 to play for free.
         vm.set_memory(0, 2);
     }
@@ -91,9 +89,9 @@ fn run_game(program: &Vec<i128>, play: bool) -> (HashMap<Point, i128>, i128) {
                     }
                     State::OutputTile => {
                         if (p.x == -1) && (p.y == 0) {
-                            // When three output instructions specify X=-1, Y=0, 
-                            // the third output instruction is not a tile; the 
-                            // value instead specifies the new score to show in 
+                            // When three output instructions specify X=-1, Y=0,
+                            // the third output instruction is not a tile; the
+                            // value instead specifies the new score to show in
                             // the segment display.
                             score = v;
                         } else {
@@ -137,5 +135,4 @@ pub fn run() {
     // Part 2
     let part2 = run_game(&program, true).1;
     println!("{}", part2);
-
 }

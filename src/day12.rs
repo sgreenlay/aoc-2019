@@ -15,24 +15,24 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
-struct Point3D {	
+struct Point3D {
     x: i128,
     y: i128,
     z: i128,
 }
 
-impl fmt::Display for Point3D {	
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {	
-        write!(f, "{},{},{}", self.x, self.y, self.z)	
-    }	
+impl fmt::Display for Point3D {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{},{},{}", self.x, self.y, self.z)
+    }
 }
 
-impl hash::Hash for Point3D {	
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {	
-        self.x.hash(state);	
-        self.y.hash(state);	
-        self.z.hash(state);	
-    }	
+impl hash::Hash for Point3D {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.x.hash(state);
+        self.y.hash(state);
+        self.z.hash(state);
+    }
 }
 
 impl ops::AddAssign for Point3D {
@@ -51,11 +51,11 @@ struct Moon {
     velocity: Point3D,
 }
 
-impl hash::Hash for Moon {	
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {	
-        self.position.hash(state);	
+impl hash::Hash for Moon {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.position.hash(state);
         self.velocity.hash(state);
-    }	
+    }
 }
 
 impl Moon {
@@ -81,27 +81,27 @@ impl Moon {
     }
 }
 
-impl fmt::Display for Moon {	
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {	
-        write!(f, "position:{}, velocity:{}", self.position, self.velocity)	
-    }	
+impl fmt::Display for Moon {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "position:{}, velocity:{}", self.position, self.velocity)
+    }
 }
 
 fn read_inputs(filename: String) -> Vec<Moon> {
     let file_in = fs::File::open(filename).expect("Can't open file");
     let file_reader = io::BufReader::new(file_in);
     file_reader.lines().filter_map(io::Result::ok).map(|line| {
-        lazy_static! {	
+        lazy_static! {
             // <x=#, y=#, z=#>
-            static ref LINE_RE: Regex = Regex::new(r"<x=(-?[\d]+), y=(-?[\d]+), z=(-?[\d]+)>").unwrap();	
+            static ref LINE_RE: Regex = Regex::new(r"<x=(-?[\d]+), y=(-?[\d]+), z=(-?[\d]+)>").unwrap();
         }
-        if LINE_RE.is_match(&line) {	
-            for line_cap in LINE_RE.captures_iter(&line) {	
-                let x: i128 = line_cap[1].parse().unwrap();	
-                let y: i128 = line_cap[2].parse().unwrap();	
+        if LINE_RE.is_match(&line) {
+            for line_cap in LINE_RE.captures_iter(&line) {
+                let x: i128 = line_cap[1].parse().unwrap();
+                let y: i128 = line_cap[2].parse().unwrap();
                 let z: i128 = line_cap[3].parse().unwrap();
                 return Moon::new(Point3D { x: x, y: y, z: z });
-            }	
+            }
         }
         panic!("Invalid input");
     }).collect()

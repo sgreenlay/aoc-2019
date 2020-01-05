@@ -19,7 +19,7 @@ fn load_input(filename : String) -> Vec<Technique> {
             if line.len() == 0 {
                 None
             } else {
-                lazy_static! {	
+                lazy_static! {
                     // DealIncrement with increment #
                     static ref DEAL_INC_RE: Regex = Regex::new(r"deal with increment (-?[\d]+)").unwrap();
 
@@ -29,17 +29,17 @@ fn load_input(filename : String) -> Vec<Technique> {
                     // DealIncrement into new stack
                     static ref NEW_RE: Regex = Regex::new(r"deal into new stack").unwrap();
                 }
-                if DEAL_INC_RE.is_match(&line) {	
-                    for line_cap in DEAL_INC_RE.captures_iter(&line) {	
+                if DEAL_INC_RE.is_match(&line) {
+                    for line_cap in DEAL_INC_RE.captures_iter(&line) {
                         let inc: i128 = line_cap[1].parse().unwrap();
                         return Some(Technique::DealIncrement(inc));
-                    }	
+                    }
                 }
-                if CUT_RE.is_match(&line) {	
-                    for line_cap in CUT_RE.captures_iter(&line) {	
+                if CUT_RE.is_match(&line) {
+                    for line_cap in CUT_RE.captures_iter(&line) {
                         let cut: i128 = line_cap[1].parse().unwrap();
                         return Some(Technique::Cut(cut));
-                    }	
+                    }
                 }
                 if NEW_RE.is_match(&line) {
                     return Some(Technique::Deal);

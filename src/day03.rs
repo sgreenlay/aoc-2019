@@ -1,31 +1,36 @@
-
-use std::io::BufRead;
 use std::io;
+use std::io::BufRead;
 
-use std::cmp;	
-use std::hash;	
+use std::cmp;
 use std::fmt;
-use std::ops;
 use std::fs;
+use std::hash;
+use std::ops;
 
 use std::collections::HashMap;
 
 fn read_inputs(filename: String) -> io::Result<Vec<Vec<Direction>>> {
     let file_in = fs::File::open(filename)?;
     let file_reader = io::BufReader::new(file_in);
-    Ok(file_reader.lines().filter_map(io::Result::ok).map(|line| {
-        line.split(',').map(|s| {
-            let (direction, distance) = s.split_at(1);
-            let magnitude = distance.parse::<i32>().unwrap();
-            match direction {
-                "U" => Direction::Up(magnitude),
-                "D" => Direction::Down(magnitude),
-                "L" => Direction::Left(magnitude),
-                "R" => Direction::Right(magnitude),
-                _ => panic!("Unknown direction"),
-            }
-        }).collect()
-    }).collect())
+    Ok(file_reader
+        .lines()
+        .filter_map(io::Result::ok)
+        .map(|line| {
+            line.split(',')
+                .map(|s| {
+                    let (direction, distance) = s.split_at(1);
+                    let magnitude = distance.parse::<i32>().unwrap();
+                    match direction {
+                        "U" => Direction::Up(magnitude),
+                        "D" => Direction::Down(magnitude),
+                        "L" => Direction::Left(magnitude),
+                        "R" => Direction::Right(magnitude),
+                        _ => panic!("Unknown direction"),
+                    }
+                })
+                .collect()
+        })
+        .collect())
 }
 
 enum Direction {
@@ -36,28 +41,28 @@ enum Direction {
 }
 
 #[derive(Copy, Clone)]
-struct Point {	
-    x: i32,	
-    y: i32,	
-}	
+struct Point {
+    x: i32,
+    y: i32,
+}
 
-impl fmt::Display for Point {	
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {	
-        write!(f, "{},{}", self.x, self.y)	
-    }	
-}	
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{},{}", self.x, self.y)
+    }
+}
 
-impl hash::Hash for Point {	
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {	
-        self.x.hash(state);	
-        self.y.hash(state);	
-    }	
-}	
+impl hash::Hash for Point {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.x.hash(state);
+        self.y.hash(state);
+    }
+}
 
-impl cmp::PartialEq for Point {	
-    fn eq(&self, other: &Self) -> bool {	
-        self.x == other.x && self.y == other.y	
-    }	
+impl cmp::PartialEq for Point {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
+    }
 }
 
 impl cmp::Eq for Point {}
@@ -73,13 +78,13 @@ impl ops::Add for Point {
     }
 }
 
-fn manhatten_distance(a : Point, b : Point) -> i32 {
+fn manhatten_distance(a: Point, b: Point) -> i32 {
     (a.x - b.x).abs() + (a.y - b.y).abs()
 }
 
-fn path(directions : &Vec<Direction>) -> HashMap<Point, i32> {
+fn path(directions: &Vec<Direction>) -> HashMap<Point, i32> {
     let mut visited = HashMap::new();
-    let mut p = Point {x: 0, y: 0};
+    let mut p = Point { x: 0, y: 0 };
     let mut steps = 0;
 
     for d in directions {
@@ -88,23 +93,22 @@ fn path(directions : &Vec<Direction>) -> HashMap<Point, i32> {
 
         match d {
             Direction::Up(distance) => {
-                dp = Point{x: 0, y: -1};
+                dp = Point { x: 0, y: -1 };
                 len = *distance;
-            },
+            }
             Direction::Down(distance) => {
-                dp = Point{x: 0, y: 1};
+                dp = Point { x: 0, y: 1 };
                 len = *distance;
-            },
+            }
             Direction::Left(distance) => {
-                dp = Point{x: -1, y: 0};
+                dp = Point { x: -1, y: 0 };
                 len = *distance;
-            },
+            }
             Direction::Right(distance) => {
-                dp = Point{x: 1, y: 0};
+                dp = Point { x: 1, y: 0 };
                 len = *distance;
             }
         }
-        
         for _ in 1..=len {
             p = p + dp;
             steps += 1;
@@ -115,8 +119,7 @@ fn path(directions : &Vec<Direction>) -> HashMap<Point, i32> {
 }
 
 pub fn run() {
-    let inputs = read_inputs("data/day03.txt".to_string())
-        .expect("Can't read file");
+    let inputs = read_inputs("data/day03.txt".to_string()).expect("Can't read file");
 
     if inputs.len() != 2 {
         panic!("Bad file length");
@@ -125,13 +128,12 @@ pub fn run() {
     let path_a = path(&inputs[0]);
     let path_b = path(&inputs[1]);
 
-    let intersections : Vec<(&Point, &i32)> = path_a.iter()
-        .filter(|p| path_b.contains_key(p.0))
-        .collect();
+    let intersections: Vec<(&Point, &i32)> =
+        path_a.iter().filter(|p| path_b.contains_key(p.0)).collect();
 
-    let start = Point{x: 0, y: 0};
+    let start = Point { x: 0, y: 0 };
     let mut min_intersection = None;
-    let mut min_distance : i32 = 0;
+    let mut min_distance: i32 = 0;
 
     for intersection in &intersections {
         if min_intersection == None {

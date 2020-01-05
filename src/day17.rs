@@ -1,4 +1,3 @@
-
 use std::cmp;
 use std::fmt;
 use std::fs;
@@ -9,7 +8,7 @@ use std::collections::HashMap;
 
 use regex::Regex;
 
-fn load_program(filename : String) -> Vec<i128> {
+fn load_program(filename: String) -> Vec<i128> {
     fs::read_to_string(filename)
         .expect("Can't read file")
         .split(',')
@@ -21,7 +20,7 @@ fn run_program(program: &Vec<i128>, input: &String) -> (String, i128) {
     let mut vm = VirtualMachine::new(program);
 
     if !input.is_empty() {
-        // Force the vacuum robot to wake up by changing the value in your ASCII 
+        // Force the vacuum robot to wake up by changing the value in your ASCII
         // program at address 0 from 1 to 2.
         vm.set_memory(0, 2);
 
@@ -48,27 +47,22 @@ fn run_program(program: &Vec<i128>, input: &String) -> (String, i128) {
             }
         }
     }
-    
     (s, last_output)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 enum Turn {
     Left,
-    Right
+    Right,
 }
 
-impl fmt::Display for Turn {	
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {	
+impl fmt::Display for Turn {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Turn::Left => {
-                write!(f, "L")
-            },
-            Turn::Right => {
-                write!(f, "R")
-            }
+            Turn::Left => write!(f, "L"),
+            Turn::Right => write!(f, "R"),
         }
-    }	
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -83,56 +77,32 @@ enum Direction {
 impl Direction {
     fn turn_to(&self, d: Direction) -> Turn {
         match self {
-            Direction::North => {
-                match d {
-                    Direction::West => {
-                        Turn::Left
-                    },
-                    Direction::East => {
-                        Turn::Right
-                    },
-                    _ => {
-                        panic!("Invalid turn");
-                    }
+            Direction::North => match d {
+                Direction::West => Turn::Left,
+                Direction::East => Turn::Right,
+                _ => {
+                    panic!("Invalid turn");
                 }
             },
-            Direction::South => {
-                match d {
-                    Direction::West => {
-                        Turn::Right
-                    },
-                    Direction::East => {
-                        Turn::Left
-                    },
-                    _ => {
-                        panic!("Invalid turn");
-                    }
+            Direction::South => match d {
+                Direction::West => Turn::Right,
+                Direction::East => Turn::Left,
+                _ => {
+                    panic!("Invalid turn");
                 }
             },
-            Direction::East => {
-                match d {
-                    Direction::North => {
-                        Turn::Left
-                    },
-                    Direction::South => {
-                        Turn::Right
-                    },
-                    _ => {
-                        panic!("Invalid turn");
-                    }
+            Direction::East => match d {
+                Direction::North => Turn::Left,
+                Direction::South => Turn::Right,
+                _ => {
+                    panic!("Invalid turn");
                 }
             },
-            Direction::West => {
-                match d {
-                    Direction::North => {
-                        Turn::Right
-                    },
-                    Direction::South => {
-                        Turn::Left
-                    },
-                    _ => {
-                        panic!("Invalid turn");
-                    }
+            Direction::West => match d {
+                Direction::North => Turn::Right,
+                Direction::South => Turn::Left,
+                _ => {
+                    panic!("Invalid turn");
                 }
             },
             _ => {
@@ -142,31 +112,21 @@ impl Direction {
     }
 }
 
-impl fmt::Display for Direction {	
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {	
+impl fmt::Display for Direction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Direction::North => {
-                write!(f, "N")
-            },
-            Direction::South => {
-                write!(f, "S")
-            },
-            Direction::East => {
-                write!(f, "E")
-            },
-            Direction::West => {
-                write!(f, "W")
-            },
-            _ => {
-                write!(f, "X")
-            }
+            Direction::North => write!(f, "N"),
+            Direction::South => write!(f, "S"),
+            Direction::East => write!(f, "E"),
+            Direction::West => write!(f, "W"),
+            _ => write!(f, "X"),
         }
-    }	
+    }
 }
 
 struct Robot {
-    x : usize,
-    y : usize,
+    x: usize,
+    y: usize,
     d: Direction,
 }
 
@@ -175,16 +135,16 @@ impl Robot {
         match self.d {
             Direction::North => {
                 self.y -= 1;
-            },
+            }
             Direction::South => {
                 self.y += 1;
-            },
+            }
             Direction::East => {
                 self.x += 1;
-            },
+            }
             Direction::West => {
                 self.x -= 1;
-            },
+            }
             _ => {
                 panic!("Invalid robot orientation");
             }
@@ -192,17 +152,18 @@ impl Robot {
     }
 }
 
-impl fmt::Display for Robot {	
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {	
-        write!(f, "{},{},{}", self.x, self.y, self.d)	
-    }	
+impl fmt::Display for Robot {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{},{},{}", self.x, self.y, self.d)
+    }
 }
 
 pub fn run() {
     let program = load_program("data/day17.txt".to_string());
 
     let output = run_program(&program, &"".to_string());
-    let scaffold: Vec<Vec<char>> = output.0
+    let scaffold: Vec<Vec<char>> = output
+        .0
         .split("\n")
         .filter_map(|s| {
             if s.len() > 0 {
@@ -213,19 +174,18 @@ pub fn run() {
         })
         .collect();
     let (height, width) = (scaffold.len(), scaffold[0].len());
-    
     // Part 1
     let is_intersection = |x: usize, y: usize| -> bool {
-        (scaffold[y][x] == '#') && 
-        (scaffold[y-1][x] == '#') && 
-        (scaffold[y+1][x] == '#') && 
-        (scaffold[y][x-1] == '#') &&
-        (scaffold[y][x+1] == '#')
+        (scaffold[y][x] == '#')
+            && (scaffold[y - 1][x] == '#')
+            && (scaffold[y + 1][x] == '#')
+            && (scaffold[y][x - 1] == '#')
+            && (scaffold[y][x + 1] == '#')
     };
 
     let mut sum = 0;
-    for y in 1..height-1 {
-        for x in 1..width-1 {
+    for y in 1..height - 1 {
+        for x in 1..width - 1 {
             if is_intersection(x, y) {
                 let alignment_parameter = x * y;
                 sum += alignment_parameter;
@@ -241,7 +201,7 @@ pub fn run() {
         } else {
             match scaffold[y as usize][x as usize] {
                 '.' => '.',
-                _ => '#'
+                _ => '#',
             }
         }
     };
@@ -249,23 +209,23 @@ pub fn run() {
         let ix = x as i32;
         let iy = y as i32;
 
-        if (get_tile(ix, iy) != '.') &&
-           ((get_tile(ix, iy-1) != get_tile(ix, iy+1)) || 
-            (get_tile(ix-1, iy) != get_tile(ix+1, iy)))
+        if (get_tile(ix, iy) != '.')
+            && ((get_tile(ix, iy - 1) != get_tile(ix, iy + 1))
+                || (get_tile(ix - 1, iy) != get_tile(ix + 1, iy)))
         {
             let vertical;
-            if get_tile(ix, iy-1) != '.' {
+            if get_tile(ix, iy - 1) != '.' {
                 vertical = Direction::North;
-            } else if get_tile(ix, iy+1) != '.' {
+            } else if get_tile(ix, iy + 1) != '.' {
                 vertical = Direction::South;
             } else {
                 vertical = Direction::None;
             }
 
             let horizontal;
-            if get_tile(ix-1, iy) != '.' {
+            if get_tile(ix - 1, iy) != '.' {
                 horizontal = Direction::West;
-            } else if get_tile(ix+1, iy) != '.' {
+            } else if get_tile(ix + 1, iy) != '.' {
                 horizontal = Direction::East;
             } else {
                 horizontal = Direction::None;
@@ -280,21 +240,27 @@ pub fn run() {
         let tile = scaffold[y][x];
 
         match tile {
-            '^' => {
-                Some(Robot{x: x, y: y, d: Direction::North})
-            },
-            'v' => {
-                Some(Robot{x: x, y: y, d: Direction::South})
-            },
-            '<' => {
-                Some(Robot{x: x, y: y, d: Direction::West})
-            },
-            '>' => {
-                Some(Robot{x: x, y: y, d: Direction::East})
-            },
-            _ => {
-                None
-            }
+            '^' => Some(Robot {
+                x: x,
+                y: y,
+                d: Direction::North,
+            }),
+            'v' => Some(Robot {
+                x: x,
+                y: y,
+                d: Direction::South,
+            }),
+            '<' => Some(Robot {
+                x: x,
+                y: y,
+                d: Direction::West,
+            }),
+            '>' => Some(Robot {
+                x: x,
+                y: y,
+                d: Direction::East,
+            }),
+            _ => None,
         }
     };
 
@@ -310,7 +276,6 @@ pub fn run() {
             break;
         }
     }
-    
     let mut robot = find_robot.unwrap();
 
     let mut distance = 0;
@@ -328,10 +293,8 @@ pub fn run() {
                 }
                 distance += 1;
                 robot.move_forward();
-            },
-            _ => {
-                panic!("Invalid")
             }
+            _ => panic!("Invalid"),
         }
     } else if &start.1 != &Direction::None {
         match &start.1 {
@@ -342,10 +305,8 @@ pub fn run() {
                 }
                 distance += 1;
                 robot.move_forward();
-            },
-            _ => {
-                panic!("Invalid")
             }
+            _ => panic!("Invalid"),
         }
     } else {
         panic!("Invalid start");
@@ -361,32 +322,28 @@ pub fn run() {
             distance = 0;
 
             match robot.d {
-                Direction::East | Direction::West => {
-                    match &j.1 {
-                        Direction::North | Direction::South => {
-                            turn = Some(robot.d.turn_to(j.1));
-                            robot.d = j.1;
-                        },
-                        Direction::None => {
-                            break;
-                        },
-                        _ => {
-                            panic!("Invalid junction");
-                        }
+                Direction::East | Direction::West => match &j.1 {
+                    Direction::North | Direction::South => {
+                        turn = Some(robot.d.turn_to(j.1));
+                        robot.d = j.1;
+                    }
+                    Direction::None => {
+                        break;
+                    }
+                    _ => {
+                        panic!("Invalid junction");
                     }
                 },
-                Direction::North | Direction::South => {
-                    match &j.0 {
-                        Direction::East | Direction::West => {
-                            turn = Some(robot.d.turn_to(j.0));
-                            robot.d = j.0;
-                        },
-                        Direction::None => {
-                            break;
-                        },
-                        _ => {
-                            panic!("Invalid junction");
-                        }
+                Direction::North | Direction::South => match &j.0 {
+                    Direction::East | Direction::West => {
+                        turn = Some(robot.d.turn_to(j.0));
+                        robot.d = j.0;
+                    }
+                    Direction::None => {
+                        break;
+                    }
+                    _ => {
+                        panic!("Invalid junction");
                     }
                 },
                 _ => {
@@ -418,7 +375,8 @@ pub fn run() {
                 if s.cmp(&b) == cmp::Ordering::Equal {
                     None
                 } else {
-                    let remaining: Vec<String> = s.split(b)
+                    let remaining: Vec<String> = s
+                        .split(b)
                         .filter_map(|s| {
                             if s.len() > 0 {
                                 Some(s.chars().collect())
@@ -448,7 +406,7 @@ pub fn run() {
         for j in 2..=remaining_a[0].len() {
             let b: String = remaining_a[0][0..j].to_string();
             let remaining_b = split_by_and_remove(&b, &remaining_a);
-            if (remaining_b.len() == 0)  || (remaining_b[0].len() < 2) {
+            if (remaining_b.len() == 0) || (remaining_b[0].len() < 2) {
                 continue;
             }
             for k in 2..=remaining_b[0].len() {
@@ -484,7 +442,11 @@ pub fn run() {
     let replace_c = Regex::new(&format!("{}", c).to_string()).unwrap();
     let result = replace_c.replace_all(&result, "C");
 
-    let main: String = result.chars().map(|s| s.to_string()).collect::<Vec<String>>().join(",");
+    let main: String = result
+        .chars()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
 
     // Generate Functions
     let (mut fn_a, mut fn_b, mut fn_c) = (a.clone(), b.clone(), c.clone());
@@ -511,8 +473,9 @@ pub fn run() {
         /* Function B: */ fn_b,
         /* Function C: */ fn_c,
         /* Continuous video feed? */ "n".to_string(),
-        "".to_string()
-    ].join("\n");
+        "".to_string(),
+    ]
+    .join("\n");
 
     let output = run_program(&program, &input);
     println!("{}", output.1);

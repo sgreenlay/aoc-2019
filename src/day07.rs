@@ -1,7 +1,6 @@
-
 use std::fs;
 
-fn load_program(filename : String) -> Vec<i32> {
+fn load_program(filename: String) -> Vec<i32> {
     let program: Vec<i32> = fs::read_to_string(filename)
         .expect("Can't read file")
         .split(',')
@@ -12,16 +11,20 @@ fn load_program(filename : String) -> Vec<i32> {
 }
 
 fn decode_instruction(i: u32) -> (u32, Vec<u32>) {
-    // Parameter modes are stored in the same value as the instruction's opcode. 
-    // The opcode is a two-digit number based only on the ones and tens digit of 
-    // the value, that is, the opcode is the rightmost two digits of the first 
-    // value in an instruction. Parameter modes are single digits, one per 
-    // parameter, read right-to-left from the opcode: the first parameter's mode 
-    // is in the hundreds digit, the second parameter's mode is in the thousands 
+    // Parameter modes are stored in the same value as the instruction's opcode.
+    // The opcode is a two-digit number based only on the ones and tens digit of
+    // the value, that is, the opcode is the rightmost two digits of the first
+    // value in an instruction. Parameter modes are single digits, one per
+    // parameter, read right-to-left from the opcode: the first parameter's mode
+    // is in the hundreds digit, the second parameter's mode is in the thousands
     // digit, the third parameter's mode is in the ten-thousands digit, and so on.
     // Any missing modes are 0.
 
-    let mut digits: Vec<u32> = i.to_string().chars().map(|d| d.to_digit(10).unwrap()).collect();
+    let mut digits: Vec<u32> = i
+        .to_string()
+        .chars()
+        .map(|d| d.to_digit(10).unwrap())
+        .collect();
     digits.reverse();
 
     let mut i: u32 = 0;
@@ -36,7 +39,7 @@ fn decode_instruction(i: u32) -> (u32, Vec<u32>) {
         } else {
             if (digit != 0) && (digit != 1) {
                 panic!("Invalid mode");
-            }   
+            }
             modes.push(digit);
         }
         count += 1;
@@ -45,7 +48,7 @@ fn decode_instruction(i: u32) -> (u32, Vec<u32>) {
     (i, modes)
 }
 
-fn get_parameter(p: i32, m: u32, program : &Vec<i32>) -> i32 {
+fn get_parameter(p: i32, m: u32, program: &Vec<i32>) -> i32 {
     match m {
         0 => {
             // mode 0, position mode, causes the parameter to be interpreted as a position
@@ -72,12 +75,12 @@ fn get_mode(mode: &Vec<u32>, i: usize) -> u32 {
 struct VM {
     ip: usize,
     memory: Vec<i32>,
-    input: Vec<i32>
+    input: Vec<i32>,
 }
 
 enum VmState {
     Output(i32),
-    Terminated
+    Terminated,
 }
 
 impl VM {
@@ -88,13 +91,13 @@ impl VM {
             let (i, mode) = decode_instruction(self.memory[self.ip] as u32);
             match i {
                 1 => {
-                    // Opcode 1 adds together numbers read from two positions 
+                    // Opcode 1 adds together numbers read from two positions
                     // and stores the result in a third position.
-                    
-                    // The three integers immediately after the opcode tell 
-                    // you these three positions - the first two indicate the 
-                    // positions from which you should read the input values, 
-                    // and the third indicates the position at which the memory 
+
+                    // The three integers immediately after the opcode tell
+                    // you these three positions - the first two indicate the
+                    // positions from which you should read the input values,
+                    // and the third indicates the position at which the memory
                     // should be stored.
 
                     let load1 = self.memory[self.ip + 1];
@@ -109,7 +112,7 @@ impl VM {
                     instruction_size = 4;
                 }
                 2 => {
-                    // Opcode 2 works exactly like opcode 1, except it multiplies 
+                    // Opcode 2 works exactly like opcode 1, except it multiplies
                     // the two inputs instead of adding them.
 
                     let load1 = self.memory[self.ip + 1];
@@ -124,7 +127,7 @@ impl VM {
                     instruction_size = 4;
                 }
                 3 => {
-                    // Opcode 3 takes a single integer as input and saves it to the 
+                    // Opcode 3 takes a single integer as input and saves it to the
                     // position given by its only parameter.
 
                     let store = self.memory[self.ip + 1] as usize;
@@ -143,8 +146,8 @@ impl VM {
                     instruction_size = 2;
                 }
                 5 => {
-                    // Opcode 5 is jump-if-true: if the first parameter is non-zero, 
-                    // it sets the instruction pointer to the value from the second 
+                    // Opcode 5 is jump-if-true: if the first parameter is non-zero,
+                    // it sets the instruction pointer to the value from the second
                     // parameter. Otherwise, it does nothing.
 
                     let load1 = self.memory[self.ip + 1];
@@ -160,8 +163,8 @@ impl VM {
                     }
                 }
                 6 => {
-                    // Opcode 6 is jump-if-false: if the first parameter is zero, it 
-                    // sets the instruction pointer to the value from the second 
+                    // Opcode 6 is jump-if-false: if the first parameter is zero, it
+                    // sets the instruction pointer to the value from the second
                     // parameter. Otherwise, it does nothing.
 
                     let load1 = self.memory[self.ip + 1];
@@ -177,8 +180,8 @@ impl VM {
                     }
                 }
                 7 => {
-                    // Opcode 7 is less than: if the first parameter is less than the 
-                    // second parameter, it stores 1 in the position given by the 
+                    // Opcode 7 is less than: if the first parameter is less than the
+                    // second parameter, it stores 1 in the position given by the
                     // third parameter. Otherwise, it stores 0.
 
                     let load1 = self.memory[self.ip + 1];
@@ -197,8 +200,8 @@ impl VM {
                     instruction_size = 4;
                 }
                 8 => {
-                    // Opcode 8 is equals: if the first parameter is equal to the second 
-                    // parameter, it stores 1 in the position given by the third 
+                    // Opcode 8 is equals: if the first parameter is equal to the second
+                    // parameter, it stores 1 in the position given by the third
                     // parameter. Otherwise, it stores 0.
 
                     let load1 = self.memory[self.ip + 1];
@@ -217,7 +220,7 @@ impl VM {
                     instruction_size = 4;
                 }
                 99 => {
-                    // Opcode 99 means that the program is finished and should 
+                    // Opcode 99 means that the program is finished and should
                     // immediately halt.
 
                     ret = Some(VmState::Terminated);
@@ -229,7 +232,7 @@ impl VM {
                     panic!("Unknown opcode")
                 }
             }
-            // After an instruction finishes, the instruction pointer increases by 
+            // After an instruction finishes, the instruction pointer increases by
             // the number of values in the instruction.
             self.ip += instruction_size;
         }
@@ -238,9 +241,8 @@ impl VM {
 }
 
 // https://en.wikipedia.org/wiki/Heap%27s_algorithm
-fn generate_all_permutations<T : Clone>(n: usize, arr: Vec<T>) -> Vec<Vec<T>> {
+fn generate_all_permutations<T: Clone>(n: usize, arr: Vec<T>) -> Vec<Vec<T>> {
     let mut a = arr.clone();
-    
     let mut c: Vec<usize> = Vec::new();
     for _ in 0..n {
         c.push(0);
@@ -278,7 +280,11 @@ pub fn run() {
     for setting in phase_settings {
         let mut output = 0;
         for amp in setting {
-            let mut vm = VM{ ip: 0, memory: program.clone(), input: vec![amp, output] };
+            let mut vm = VM {
+                ip: 0,
+                memory: program.clone(),
+                input: vec![amp, output],
+            };
             match vm.run() {
                 VmState::Output(v) => {
                     output = v;
@@ -300,7 +306,11 @@ pub fn run() {
     for setting in phase_settings {
         let mut vms: Vec<VM> = Vec::new();
         for amp in setting {
-            vms.push(VM{ ip: 0, memory: program.clone(), input: vec![amp] })
+            vms.push(VM {
+                ip: 0,
+                memory: program.clone(),
+                input: vec![amp],
+            })
         }
 
         let mut curr = 0;

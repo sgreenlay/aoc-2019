@@ -1,4 +1,3 @@
-
 use std::cmp;
 use std::fmt;
 use std::fs;
@@ -9,7 +8,7 @@ use crate::intcode::{VirtualMachine, VirtualMachineState};
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-fn load_program(filename : String) -> Vec<i128> {
+fn load_program(filename: String) -> Vec<i128> {
     fs::read_to_string(filename)
         .expect("Can't read file")
         .split(',')
@@ -18,28 +17,27 @@ fn load_program(filename : String) -> Vec<i128> {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-struct Point {	
-    x: i128,	
-    y: i128,	
+struct Point {
+    x: i128,
+    y: i128,
 }
 
-impl fmt::Display for Point {	
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {	
-        write!(f, "{},{}", self.x, self.y)	
-    }	
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{},{}", self.x, self.y)
+    }
 }
 
-impl Ord for Point {	
-    fn cmp(&self, other: &Self) -> cmp::Ordering {	
-        self.y.cmp(&other.y)	
-            .then_with(|| self.x.cmp(&other.x))
-    }	
-}	
+impl Ord for Point {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.y.cmp(&other.y).then_with(|| self.x.cmp(&other.x))
+    }
+}
 
-impl PartialOrd for Point {	
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {	
-        Some(self.cmp(other))	
-    }	
+impl PartialOrd for Point {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl ops::Add for Point {
@@ -83,10 +81,10 @@ impl Direction {
 
 fn generate_direction_table() -> HashMap<Direction, Point> {
     let mut directions: HashMap<Direction, Point> = HashMap::new();
-    directions.insert(Direction::North, Point{x: 0, y: -1});
-    directions.insert(Direction::South, Point{x: 0, y: 1});
-    directions.insert(Direction::East, Point{x: 1, y: 0});
-    directions.insert(Direction::West, Point{x: -1, y: 0});
+    directions.insert(Direction::North, Point { x: 0, y: -1 });
+    directions.insert(Direction::South, Point { x: 0, y: 1 });
+    directions.insert(Direction::East, Point { x: 1, y: 0 });
+    directions.insert(Direction::West, Point { x: -1, y: 0 });
     directions
 }
 
@@ -103,7 +101,7 @@ fn run_program(program: &Vec<i128>) -> HashMap<Point, i128> {
     //   - Wait for the repair droid to finish the movement operation.
     //   - Report on the status of the repair droid via an output instruction.
 
-    let mut current = Point{x: 0, y: 0};
+    let mut current = Point { x: 0, y: 0 };
     let mut path: Vec<(Direction, Point)> = Vec::new();
 
     let mut map: HashMap<Point, i128> = HashMap::new();
@@ -112,10 +110,10 @@ fn run_program(program: &Vec<i128>) -> HashMap<Point, i128> {
     loop {
         match vm.run() {
             VirtualMachineState::WaitForInput => {
-                // Only four movement commands are understood: 
+                // Only four movement commands are understood:
                 //   north (1),
                 //   south (2),
-                //   west (3), and 
+                //   west (3), and
                 //   east (4).
 
                 let mut next: Option<(Direction, Point)> = None;
@@ -131,19 +129,15 @@ fn run_program(program: &Vec<i128>) -> HashMap<Point, i128> {
                 match next {
                     Some(n) => {
                         let prev = current;
-    
                         direction = n.0;
                         current = n.1;
-    
                         path.push((direction, prev));
-                    },
+                    }
                     None => {
                         if path.is_empty() {
                             break;
                         }
-                        
                         let backtrack = path.pop().unwrap();
-    
                         direction = backtrack.0.inverse();
                         current = backtrack.1;
                     }
@@ -152,25 +146,24 @@ fn run_program(program: &Vec<i128>) -> HashMap<Point, i128> {
                 match direction {
                     Direction::North => {
                         vm.add_input(1);
-                    },
+                    }
                     Direction::South => {
                         vm.add_input(2);
-                    },
+                    }
                     Direction::East => {
                         vm.add_input(3);
-                    },
+                    }
                     Direction::West => {
                         vm.add_input(4);
-                    },
+                    }
                 }
             }
             VirtualMachineState::Output(v) => {
                 // The repair droid can reply with any of the following status codes:
                 //    0: The repair droid hit a wall. Its position has not changed.
                 //    1: The repair droid has moved one step in the requested direction.
-                //    2: The repair droid has moved one step in the requested direction; 
+                //    2: The repair droid has moved one step in the requested direction;
                 //       its new position is the location of the oxygen system.
-                
                 if !map.contains_key(&current) {
                     map.insert(current, v);
                 }
@@ -189,7 +182,11 @@ fn run_program(program: &Vec<i128>) -> HashMap<Point, i128> {
     map
 }
 
-fn bredth_first_search_map(start: &Point, map: &HashMap<Point, i128>, stop: &mut dyn FnMut(Point, i128) -> bool) {
+fn bredth_first_search_map(
+    start: &Point,
+    map: &HashMap<Point, i128>,
+    stop: &mut dyn FnMut(Point, i128) -> bool,
+) {
     let mut frontier: Vec<(Point, i128)> = Vec::new();
     let mut visited: HashSet<Point> = HashSet::new();
 
@@ -229,8 +226,8 @@ pub fn run() {
     let map = run_program(&program);
 
     // Part 1
-    let start = Point{x: 0, y: 0};
-    let mut oxygen = Point{x: 0, y: 0};
+    let start = Point { x: 0, y: 0 };
+    let mut oxygen = Point { x: 0, y: 0 };
     let mut min_distance = 0;
     bredth_first_search_map(&start, &map, &mut |p, distance| -> bool {
         if map[&p] == 2 {

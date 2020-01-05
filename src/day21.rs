@@ -1,10 +1,9 @@
-
-use std::fs;
 use ascii;
+use std::fs;
 
 use crate::intcode::{VirtualMachine, VirtualMachineState};
 
-fn load_program(filename : String) -> Vec<i128> {
+fn load_program(filename: String) -> Vec<i128> {
     fs::read_to_string(filename)
         .expect("Can't read file")
         .split(',')
@@ -80,13 +79,7 @@ pub fn run() {
     // #####.#..########
 
     // (!C || !A) && D
-    let script = vec![
-        "NOT A T",
-        "NOT C J",
-        "OR T J",
-        "AND D J",
-        "WALK",
-    ];
+    let script = vec!["NOT A T", "NOT C J", "OR T J", "AND D J", "WALK"];
 
     run_program(&program, &script);
 
@@ -105,15 +98,7 @@ pub fn run() {
 
     // ((!C && H) || !B || !A) && D
     let script = vec![
-        "NOT C T",
-        "AND H T",
-        "AND D T",
-        "NOT B J",
-        "AND D J",
-        "OR J T",
-        "NOT A J",
-        "OR T J",
-        "RUN",
+        "NOT C T", "AND H T", "AND D T", "NOT B J", "AND D J", "OR J T", "NOT A J", "OR T J", "RUN",
     ];
 
     run_program(&program, &script);

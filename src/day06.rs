@@ -1,6 +1,5 @@
-
-use std::io::BufRead;
 use std::io;
+use std::io::BufRead;
 
 use std::fs;
 
@@ -9,11 +8,11 @@ use std::collections::HashMap;
 fn read_inputs(filename: String) -> HashMap<String, String> {
     let file_in = fs::File::open(filename).expect("Couldn't open file");
     let file_reader = io::BufReader::new(file_in);
-    let inputs: Vec<Vec<String>> = file_reader.lines().filter_map(io::Result::ok).map(|line| {
-        line.split(')').map(|s| {
-            String::from(s)
-        }).collect()
-    }).collect();
+    let inputs: Vec<Vec<String>> = file_reader
+        .lines()
+        .filter_map(io::Result::ok)
+        .map(|line| line.split(')').map(|s| String::from(s)).collect())
+        .collect();
 
     let mut orbits = HashMap::new();
     for input in inputs {

@@ -1,40 +1,43 @@
-
-use std::io::BufRead;
 use std::io;
+use std::io::BufRead;
 
 use std::fmt;
 use std::fs;
 
-use std::f64::consts;
 use std::collections::HashSet;
+use std::f64::consts;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-struct Point {	
-    x: i32,	
-    y: i32,	
+struct Point {
+    x: i32,
+    y: i32,
 }
 
-impl fmt::Display for Point {	
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {	
-        write!(f, "{},{}", self.x, self.y)	
-    }	
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{},{}", self.x, self.y)
+    }
 }
 
 fn read_inputs(filename: String) -> Vec<Point> {
     let file_in = fs::File::open(filename).expect("Can't read file!");
     let file_reader = io::BufReader::new(file_in);
-    let inputs: Vec<Vec<char>> = file_reader.lines().filter_map(io::Result::ok).map(|line| {
-        let chars: Vec<char> = line.chars().collect();
-        chars
-    }).collect();
+    let inputs: Vec<Vec<char>> = file_reader
+        .lines()
+        .filter_map(io::Result::ok)
+        .map(|line| {
+            let chars: Vec<char> = line.chars().collect();
+            chars
+        })
+        .collect();
 
     let mut points: Vec<Point> = Vec::new();
     for y in 0..inputs.len() {
         for x in 0..inputs[y].len() {
             if inputs[y][x] == '#' {
-                points.push(Point{ 
-                    x: x as i32, 
-                    y: y as i32
+                points.push(Point {
+                    x: x as i32,
+                    y: y as i32,
                 });
             }
         }
@@ -127,16 +130,18 @@ pub fn run() {
         let closest = get_closest(station, &inputs);
         if closest.len() < remaining_asteroids {
             remaining_asteroids -= closest.len();
-            
             let remove: HashSet<Point> = closest.iter().map(|&i| inputs[i]).collect();
             inputs.retain(|p| !remove.contains(p));
         } else {
-            let mut angles: Vec<(usize, Point, f64)> = closest.iter().map(|&i| {
-                let p = inputs[i];
-                let angle = angle_to(station, p);
-                (i, p, angle)
-            }).collect();
-            angles.sort_by(|a, b| { a.2.partial_cmp(&b.2).unwrap() });
+            let mut angles: Vec<(usize, Point, f64)> = closest
+                .iter()
+                .map(|&i| {
+                    let p = inputs[i];
+                    let angle = angle_to(station, p);
+                    (i, p, angle)
+                })
+                .collect();
+            angles.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
 
             let two_hundredth = angles[remaining_asteroids - 1].0;
             println!("{}", inputs[two_hundredth]);
