@@ -1,18 +1,9 @@
 use std::cmp;
 use std::fmt;
-use std::fs;
 
-use crate::intcode::{VirtualMachine, VirtualMachineState};
+use crate::intcode::{VirtualMachine, VirtualMachineState, load_program};
 
 use std::collections::HashMap;
-
-fn load_program(filename: String) -> Vec<i128> {
-    fs::read_to_string(filename)
-        .expect("Can't read file")
-        .split(',')
-        .map(|s| s.parse::<i128>().unwrap())
-        .collect()
-}
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 struct Point {

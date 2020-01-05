@@ -1,14 +1,6 @@
 use std::fs;
 
-use crate::intcode::{VirtualMachine, VirtualMachineState};
-
-fn load_program(filename: String) -> Vec<i128> {
-    fs::read_to_string(filename)
-        .expect("Can't read file")
-        .split(',')
-        .map(|s| s.parse::<i128>().unwrap())
-        .collect()
-}
+use crate::intcode::{VirtualMachine, VirtualMachineState, load_program};
 
 pub fn run() {
     let program = load_program("data/day09.txt".to_string());

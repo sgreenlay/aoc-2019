@@ -1,23 +1,6 @@
-use std::fs;
-
 use std::collections::HashSet;
 
-use crate::intcode::{VirtualMachine, VirtualMachineState};
-
-fn load_program(filename: String) -> Vec<i128> {
-    fs::read_to_string(filename)
-        .expect("Can't read file")
-        .split(',')
-        .filter_map(|s| {
-            let v = s.parse::<i128>();
-            if v.is_err() {
-                None
-            } else {
-                Some(v.unwrap())
-            }
-        })
-        .collect()
-}
+use crate::intcode::{VirtualMachine, VirtualMachineState, load_program};
 
 pub fn run() {
     let program = load_program("data/day23.txt".to_string());

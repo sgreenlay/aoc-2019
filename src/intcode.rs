@@ -1,3 +1,18 @@
+use std::fs;
+use std::io;
+use std::io::BufRead;
+
+pub fn load_program(filename: String) -> Vec<i128> {
+    let file_in = fs::File::open(filename).expect("Can't read file");
+    let file_reader = io::BufReader::new(file_in);
+    let line: Vec<String> = file_reader.lines().filter_map(io::Result::ok).collect();
+
+    line[0]
+        .split(',')
+        .map(|line| line.parse::<i128>().unwrap())
+        .collect()
+}
+
 #[derive(Clone)]
 pub struct VirtualMachine {
     ip: usize,

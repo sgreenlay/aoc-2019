@@ -1,7 +1,6 @@
 use ascii;
-use std::fs;
 
-use crate::intcode::{VirtualMachine, VirtualMachineState};
+use crate::intcode::{VirtualMachine, VirtualMachineState, load_program};
 
 fn load_program(filename: String) -> Vec<i128> {
     fs::read_to_string(filename)

@@ -1,6 +1,4 @@
-use std::fs;
-
-use crate::intcode::{VirtualMachine, VirtualMachineState};
+use crate::intcode::{VirtualMachine, VirtualMachineState, load_program};
 
 use std::collections::HashMap;
 

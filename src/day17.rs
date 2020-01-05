@@ -1,20 +1,11 @@
 use std::cmp;
 use std::fmt;
-use std::fs;
 
-use crate::intcode::{VirtualMachine, VirtualMachineState};
+use crate::intcode::{VirtualMachine, VirtualMachineState, load_program};
 
 use std::collections::HashMap;
 
 use regex::Regex;
-
-fn load_program(filename: String) -> Vec<i128> {
-    fs::read_to_string(filename)
-        .expect("Can't read file")
-        .split(',')
-        .map(|s| s.parse::<i128>().unwrap())
-        .collect()
-}
 
 fn run_program(program: &Vec<i128>, input: &String) -> (String, i128) {
     let mut vm = VirtualMachine::new(program);
