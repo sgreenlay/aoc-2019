@@ -4,8 +4,8 @@ extern crate lazy_static;
 
 mod intcode;
 
-mod day21;
-use day21::run;
+mod day22;
+use day22::run;
 
 fn main() {
     run();
