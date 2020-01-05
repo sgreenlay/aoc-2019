@@ -58,17 +58,17 @@ fn run_program(program: &Vec<i128>, script: &Vec<&str>) {
 pub fn run() {
     let program = load_program("data/day21.txt".to_string());
 
-    // @
-    // #ABCD
-    // T - Temp
-    // J - Jump
-
     // There are only three instructions available in springscript:
     //   AND X Y sets Y to true if both X and Y are true
     //   OR X Y sets Y to true if at least one of X or Y is true
     //   NOT X Y sets Y to true if X is false
 
     // Part 1
+
+    // @
+    // #ABCD
+    // T - Temp
+    // J - Jump
 
     // @................
     // #####.###########
@@ -86,6 +86,34 @@ pub fn run() {
         "OR T J",
         "AND D J",
         "WALK",
+    ];
+
+    run_program(&program, &script);
+
+    // Part 2
+
+    // @
+    // #ABCDEFGHI
+    // T - Temp
+    // J - Jump
+
+    // @................
+    // #####.#.#...#####
+
+    // @................
+    // #####..##.##.####
+
+    // ((!C && H) || !B || !A) && D
+    let script = vec![
+        "NOT C T",
+        "AND H T",
+        "AND D T",
+        "NOT B J",
+        "AND D J",
+        "OR J T",
+        "NOT A J",
+        "OR T J",
+        "RUN",
     ];
 
     run_program(&program, &script);
