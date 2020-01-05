@@ -1,12 +1,9 @@
 
-use std::collections::HashMap;
-
 pub struct VirtualMachine {
     ip: usize,
-    memory: HashMap<usize,i128>,
+    memory: Vec<i128>,
     input: Vec<i128>,
-    relative_base: i128,
-    debug: bool
+    relative_base: i128
 }
 
 #[derive(PartialEq)]
@@ -18,36 +15,31 @@ pub enum VirtualMachineState {
 
 impl VirtualMachine {
     pub fn new(program: &Vec<i128>) -> VirtualMachine {
-        let mut vm = VirtualMachine {
+        VirtualMachine {
             ip: 0,
-            memory: HashMap::new(),
+            memory: program.clone(),
             input: Vec::new(),
-            relative_base: 0,
-            debug: false
-        };
-        for i in 0..program.len() {
-            vm.memory.insert(i, program[i]);
+            relative_base: 0
         }
-        vm
     }
     pub fn add_input(&mut self, input: i128) {
         self.input.push(input);
     }
     pub fn set_memory(&mut self, location: usize, value: i128) {
-        self.memory.insert(location, value);
+        if location >= self.memory.len() {
+            self.memory.resize(location + 1, 0);
+        }
+        self.memory[location] = value;
     }
     pub fn get_memory(&self, location: usize) -> i128 {
-        match self.memory.get(&location) {
-            Some(n) => *n,
-            None => 0
+        if self.memory.len() <= location {
+            0
+        } else {
+            self.memory[location]
         }
     }
     fn next_instruction(&self) -> (u32, Vec<u32>) {
-        let i = self.get_memory(self.ip) as u32;
-
-        if self.debug {
-            print!("[{}] {}", self.ip, i);
-        }
+        let op = self.get_memory(self.ip) as u32;
 
         // Parameter modes are stored in the same value as the instruction's opcode. 
         // The opcode is a two-digit number based only on the ones and tens digit of 
@@ -58,22 +50,26 @@ impl VirtualMachine {
         // digit, the third parameter's mode is in the ten-thousands digit, and so on.
         // Any missing modes are 0.
     
-        let mut digits: Vec<u32> = i.to_string().chars().map(|d| d.to_digit(10).unwrap()).collect();
-        digits.reverse();
-    
         let mut i: u32 = 0;
         let mut modes: Vec<u32> = Vec::new();
-    
-        let mut count = 0;
-        for digit in digits {
-            if count == 0 {
-                i = digit;
-            } else if count == 1 {
-                i += digit * 10;
-            } else {
-                modes.push(digit);
+        
+        let mut mult = 1;
+        for idx in 0..5 {
+            let digit = (op / mult) % 10;
+            
+            match idx {
+                0 => {
+                    i = digit;
+                },
+                1 => {
+                    i += digit * 10;
+                },
+                _ => {
+                    modes.push(digit);
+                }
             }
-            count += 1;
+
+            mult *= 10;
         }
     
         (i, modes)
@@ -141,10 +137,6 @@ impl VirtualMachine {
                     panic!("Invalid mode");
                 }
             }
-
-            if self.debug {
-                print!(" {} [mode:{}, value:{}]", p, m, ret);
-            }
             ret
         }).collect();
 
@@ -166,10 +158,6 @@ impl VirtualMachine {
                     // and the third indicates the position at which the memory 
                     // should be stored.
 
-                    if self.debug {
-                        print!(" ADD");
-                    }
-
                     let p: Vec<i128> = self.get_parameters(vec!['r', 'r', 'w'], mode);
                     self.set_memory(p[2] as usize, p[0] + p[1]);
 
@@ -179,10 +167,6 @@ impl VirtualMachine {
                     // Opcode 2 works exactly like opcode 1, except it multiplies 
                     // the two inputs instead of adding them.
 
-                    if self.debug {
-                        print!(" MULT");
-                    }
-
                     let p: Vec<i128> = self.get_parameters(vec!['r', 'r', 'w'], mode);
                     self.set_memory(p[2] as usize, p[0] * p[1]);
 
@@ -191,10 +175,6 @@ impl VirtualMachine {
                 3 => {
                     // Opcode 3 takes a single integer as input and saves it to the 
                     // position given by its only parameter.
-
-                    if self.debug {
-                        print!(" IN");
-                    }
 
                     let p: Vec<i128> = self.get_parameters(vec!['w'], mode);
 
@@ -211,10 +191,6 @@ impl VirtualMachine {
                 4 => {
                     // Opcode 4 outputs the value of its only parameter.
 
-                    if self.debug {
-                        print!(" OUT");
-                    }
-
                     let p: Vec<i128> = self.get_parameters(vec!['r'], mode);
                     ret = Some(VirtualMachineState::Output(p[0]));
 
@@ -224,10 +200,6 @@ impl VirtualMachine {
                     // Opcode 5 is jump-if-true: if the first parameter is non-zero, 
                     // it sets the instruction pointer to the value from the second 
                     // parameter. Otherwise, it does nothing.
-
-                    if self.debug {
-                        print!(" JMP");
-                    }
 
                     let p: Vec<i128> = self.get_parameters(vec!['r', 'r'], mode);
                     if p[0] != 0 {
@@ -241,10 +213,6 @@ impl VirtualMachine {
                     // sets the instruction pointer to the value from the second 
                     // parameter. Otherwise, it does nothing.
 
-                    if self.debug {
-                        print!(" JMP!");
-                    }
-
                     let p: Vec<i128> = self.get_parameters(vec!['r', 'r'], mode);
                     if p[0] == 0 {
                         self.ip = p[1] as usize;
@@ -256,10 +224,6 @@ impl VirtualMachine {
                     // Opcode 7 is less than: if the first parameter is less than the 
                     // second parameter, it stores 1 in the position given by the 
                     // third parameter. Otherwise, it stores 0.
-
-                    if self.debug {
-                        print!(" LT");
-                    }
 
                     let p: Vec<i128> = self.get_parameters(vec!['r', 'r', 'w'], mode);
                     if p[0] < p[1] {
@@ -275,10 +239,6 @@ impl VirtualMachine {
                     // parameter, it stores 1 in the position given by the third 
                     // parameter. Otherwise, it stores 0.
 
-                    if self.debug {
-                        print!(" EQ");
-                    }
-
                     let p: Vec<i128> = self.get_parameters(vec!['r', 'r', 'w'], mode);
                     if p[0] == p[1] {
                         self.set_memory(p[2] as usize, 1);
@@ -292,28 +252,16 @@ impl VirtualMachine {
                     // Opcode 9 adjusts the relative base by the value of its only 
                     // parameter.
 
-                    if self.debug {
-                        print!(" RB");
-                    }
-
                     let p: Vec<i128> = self.get_parameters(vec!['r'], mode);
 
                     let offset = p[0];
                     self.relative_base += offset;
-
-                    if self.debug {
-                        print!(" -> [rb:{}]", self.relative_base);
-                    }
 
                     instruction_size = 2;
                 }
                 99 => {
                     // Opcode 99 means that the program is finished and should 
                     // immediately halt.
-
-                    if self.debug {
-                        print!(" HALT");
-                    }
 
                     ret = Some(VirtualMachineState::Terminated);
 
@@ -323,10 +271,6 @@ impl VirtualMachine {
                     // Encountering an unknown opcode means something went wrong.
                     panic!("Unknown opcode")
                 }
-            }
-
-            if self.debug {
-                println!("");
             }
 
             // After an instruction finishes, the instruction pointer increases by 
