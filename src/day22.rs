@@ -50,6 +50,35 @@ fn load_input(filename : String) -> Vec<Technique> {
         .collect()
 }
 
+// https://algorithmist.com/wiki/Modular_inverse
+fn iterative_egcd(a: i128, b: i128) -> (i128, i128, i128) {
+    let (mut a, mut b) = (a, b);
+    let (mut x, mut y, mut u, mut v) = (0, 1, 1, 0);
+    while a != 0 {
+        let (q, r) = ((b as f64 / a as f64).floor() as i128, b % a);
+        let (m, n) = (x - u * q, y - v * q);
+
+        let (b_p, a_p, x_p, y_p, u_p, v_p) = (a, r, u, v, m, n);
+
+        b = b_p;
+        a = a_p;
+        x = x_p;
+        y = y_p;
+        u = u_p;
+        v = v_p;
+    }
+    (b, x, y)
+}
+
+fn modular_inverse(a: i128, m: i128) -> Option<i128> {
+    let (g, x, _) = iterative_egcd(a, m);
+    if g != 1 {
+        None
+    } else {
+        Some(x % m)
+    }
+}
+
 fn modular(a: i128, m: i128) -> i128 {
     if a >= 0 {
         a % m
@@ -58,26 +87,31 @@ fn modular(a: i128, m: i128) -> i128 {
     }
 }
 
-fn get_coefficients(card_count: i128, shuffle_count: i128, steps: &Vec<Technique>) -> (i128, i128) {
-    let (mut a, mut b) = (1, 0);
-    for _ in 0..shuffle_count {
-        let (a_p, b_p) = steps.iter().fold((a, b), |(a, b), s| -> (i128, i128) {
-            match s {
-                Technique::DealIncrement(x) => {
-                    (modular(a * x, card_count), modular(b * x, card_count))
-                },
-                Technique::Cut(x) => {
-                    (a, modular(b - x, card_count))
-                },
-                Technique::Deal => {
-                    (modular(-a, card_count), modular(card_count - 1 - b, card_count))
-                },
-            }
-        });
-        a = a_p;
-        b = b_p;
+fn poly_pow(a: i128, b: i128, m: i128, n: i128) -> (i128, i128) {
+    if m == 0 {
+        (1, 0)
+    } else if m % 2 == 0 {
+        poly_pow(a * a % n, (a * b + b) % n, m / 2, n)
+    } else {
+        let (c, d) = poly_pow(a, b, m-1, n);
+        (a * c % n, (a * d + b) % n)
     }
-    (a, b)
+}
+
+fn get_coefficients(card_count: i128, steps: &Vec<Technique>) -> (i128, i128) {
+    steps.iter().fold((1, 0), |(a, b), s| -> (i128, i128) {
+        match s {
+            Technique::DealIncrement(x) => {
+                (modular(a * x, card_count), modular(b * x, card_count))
+            },
+            Technique::Cut(x) => {
+                (a, modular(b - x, card_count))
+            },
+            Technique::Deal => {
+                (modular(-a, card_count), modular(card_count - 1 - b, card_count))
+            },
+        }
+    })
 }
 
 pub fn run() {
@@ -89,9 +123,20 @@ pub fn run() {
 
     // Part 1
     let card_count = 10007;
-    let shuffle_count = 1;
+    let (a, b) = get_coefficients(card_count, &steps);
 
-    let (a, b) = get_coefficients(card_count, shuffle_count, &steps);
-    let y = modular(a * 2019 + b, card_count);
+    let x = 2019;
+    let y = modular(a * x + b, card_count);
     println!("{}", y);
+
+    // Part 2
+    let card_count = 119315717514047;
+    let (a, b) = get_coefficients(card_count, &steps);
+
+    let shuffle_count = 101741582076661;
+    let (a, b) = poly_pow(a, b, shuffle_count, card_count);
+
+    let y = 2020;
+    let x = modular((y - b) * modular_inverse(a, card_count).unwrap(), card_count);
+    println!("{}", x);
 }
