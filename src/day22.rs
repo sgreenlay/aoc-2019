@@ -61,43 +61,43 @@ fn load_input(filename : String) -> Vec<Technique> {
         .collect()
 }
 
+fn shuffle(card_count: u64, steps: &Vec<Technique>, repeat: usize) -> Vec<u64> {
+    let mut cards: Vec<u64> = (0..card_count).collect::<Vec<_>>();
+    let mut scratch: Vec<u64> = vec![0; card_count as usize];
+
+    for _ in 0..repeat {
+        for s in steps {
+            match s {
+                Technique::DealIncrement(inc) => {
+                    let mut i = 0;
+                    for c in &cards {
+                        scratch[i] = *c;
+                        i = (i + inc) % scratch.len();
+                    }
+                    std::mem::swap(&mut cards, &mut scratch);
+                },
+                Technique::Cut(cut) => {
+                    let len = cards.len();
+                    if cut > &0 {
+                        cards.rotate_left((*cut as usize) % len);
+                    } else {
+                        cards.rotate_right((cut.abs() as usize) % len);
+                    }
+                },
+                Technique::Deal => {
+                    cards.reverse()
+                },
+            }
+        }
+    }
+    cards
+}
+
 pub fn run() {
     let input = load_input("data/day22.txt".to_string());
 
-    let card_count = 10007;
-    let mut cards: Vec<i128> = (0..card_count).into_iter().collect::<Vec<_>>();
-
-    for i in input {
-        match i {
-            Technique::DealIncrement(inc) => {
-                let mut scratch = vec![0; cards.len()];
-                let mut i = 0;
-                while !cards.is_empty() {
-                    let c = cards.remove(0);
-                    scratch[i] = c;
-                    i = (i + inc) % scratch.len();
-                }
-                cards = scratch;
-            },
-            Technique::Cut(cut) => {
-                if cut > 0 {
-                    for _ in 0..cut {
-                        let c = cards.remove(0);
-                        cards.push(c);
-                    }
-                } else {
-                    for _ in 0..cut.abs() {
-                        let c = cards.pop().unwrap();
-                        cards.insert(0, c);
-                    }
-                }
-            },
-            Technique::Deal => {
-                cards.reverse()
-            },
-        }
-    }
-
+    // Part 1
+    let cards = shuffle(10007, &input, 1);
     for i in 0..cards.len() {
         if cards[i] == 2019 {
             println!("{}", i);
