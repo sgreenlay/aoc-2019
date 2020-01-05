@@ -1,5 +1,4 @@
 
-use std::fmt;
 use std::fs;
 
 use regex::Regex;
@@ -7,19 +6,9 @@ use regex::Regex;
 use lazy_static;
 
 enum Technique {
-    DealIncrement(usize),
+    DealIncrement(i128),
     Cut(i128),
     Deal
-}
-
-impl fmt::Display for Technique {	
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {	
-        match self {
-            Technique::DealIncrement(inc) => write!(f, "DealIncrement with increment {}", inc),
-            Technique::Cut(cut) => write!(f, "cut {}", cut),
-            Technique::Deal => write!(f, "DealIncrement into new stack"),
-        }
-    }	
 }
 
 fn load_input(filename : String) -> Vec<Technique> {
@@ -42,7 +31,7 @@ fn load_input(filename : String) -> Vec<Technique> {
                 }
                 if DEAL_INC_RE.is_match(&line) {	
                     for line_cap in DEAL_INC_RE.captures_iter(&line) {	
-                        let inc: usize = line_cap[1].parse().unwrap();
+                        let inc: i128 = line_cap[1].parse().unwrap();
                         return Some(Technique::DealIncrement(inc));
                     }	
                 }
@@ -61,47 +50,48 @@ fn load_input(filename : String) -> Vec<Technique> {
         .collect()
 }
 
-fn shuffle(card_count: u64, steps: &Vec<Technique>, repeat: usize) -> Vec<u64> {
-    let mut cards: Vec<u64> = (0..card_count).collect::<Vec<_>>();
-    let mut scratch: Vec<u64> = vec![0; card_count as usize];
+fn modular(a: i128, m: i128) -> i128 {
+    if a >= 0 {
+        a % m
+    } else {
+        m + a % m
+    }
+}
 
-    for _ in 0..repeat {
-        for s in steps {
+fn get_coefficients(card_count: i128, shuffle_count: i128, steps: &Vec<Technique>) -> (i128, i128) {
+    let (mut a, mut b) = (1, 0);
+    for _ in 0..shuffle_count {
+        let (a_p, b_p) = steps.iter().fold((a, b), |(a, b), s| -> (i128, i128) {
             match s {
-                Technique::DealIncrement(inc) => {
-                    let mut i = 0;
-                    for c in &cards {
-                        scratch[i] = *c;
-                        i = (i + inc) % scratch.len();
-                    }
-                    std::mem::swap(&mut cards, &mut scratch);
+                Technique::DealIncrement(x) => {
+                    (modular(a * x, card_count), modular(b * x, card_count))
                 },
-                Technique::Cut(cut) => {
-                    let len = cards.len();
-                    if cut > &0 {
-                        cards.rotate_left((*cut as usize) % len);
-                    } else {
-                        cards.rotate_right((cut.abs() as usize) % len);
-                    }
+                Technique::Cut(x) => {
+                    (a, modular(b - x, card_count))
                 },
                 Technique::Deal => {
-                    cards.reverse()
+                    (modular(-a, card_count), modular(card_count - 1 - b, card_count))
                 },
             }
-        }
+        });
+        a = a_p;
+        b = b_p;
     }
-    cards
+    (a, b)
 }
 
 pub fn run() {
-    let input = load_input("data/day22.txt".to_string());
+    let steps = load_input("data/day22.txt".to_string());
+    
+    // All three dealing operations can be written as a linear operation of the form:
+    //    y = a * x + b
+    // where x is the initial position of the card, and y is the final position of the card
 
     // Part 1
-    let cards = shuffle(10007, &input, 1);
-    for i in 0..cards.len() {
-        if cards[i] == 2019 {
-            println!("{}", i);
-            break;
-        }
-    }
+    let card_count = 10007;
+    let shuffle_count = 1;
+
+    let (a, b) = get_coefficients(card_count, shuffle_count, &steps);
+    let y = modular(a * 2019 + b, card_count);
+    println!("{}", y);
 }
