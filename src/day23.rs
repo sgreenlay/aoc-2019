@@ -1,6 +1,8 @@
 
 use std::fs;
 
+use std::collections::HashSet;
+
 use crate::intcode::{VirtualMachine, VirtualMachineState};
 
 fn load_program(filename : String) -> Vec<i128> {
@@ -28,9 +30,12 @@ pub fn run() {
     }
 
     let mut vms: Vec<VirtualMachine> = (0..50).into_iter().map(|_| template.clone()).collect();
-    let mut packets: Vec<(usize, i128)> = (0..50).map(|addr| (addr, addr as i128)).collect();
+	let mut packets: Vec<(usize, i128)> = (0..50).map(|addr| (addr, addr as i128)).collect();
+	
+	let mut nat: Option<(i128, i128)> = None;
+	let mut seen_nat_y: HashSet<i128> = HashSet::new();
 
-    'run: loop {
+    loop {
         while !packets.is_empty() {
             let packet = packets.remove(0);
 
@@ -54,8 +59,10 @@ pub fn run() {
                         };
 
                         if addr == 255 {
-							println!("{}", y);
-                            break 'run;
+							if nat.is_none() {
+								println!("{}", y);
+							}
+							nat = Some((x, y));
                         } else {
                             packets.push((addr, x));
                             packets.push((addr, y));
@@ -66,7 +73,22 @@ pub fn run() {
                     }
                 }
             }
-        }
-        packets = (0..50).map(|addr| (addr, -1)).collect();
+		}
+		
+		if nat.is_some() {
+			let (x, y) = nat.unwrap();
+
+			if seen_nat_y.contains(&y) {
+				println!("{}", y);
+				break;
+			} else {
+				seen_nat_y.insert(y);
+			}
+
+			packets.push((0, x));
+			packets.push((0, y));
+		} else {
+			packets = (0..50).map(|addr| (addr, -1)).collect();
+		}
     }
 }
