@@ -1,13 +1,16 @@
 use std::fs;
+use std::io;
+use std::io::BufRead;
 
-fn load_program(filename: String) -> Vec<usize> {
-    let program: Vec<usize> = fs::read_to_string(filename)
-        .expect("Can't read file")
+pub fn load_program(filename: String) -> Vec<usize> {
+    let file_in = fs::File::open(filename).expect("Can't read file");
+    let file_reader = io::BufReader::new(file_in);
+    let line: Vec<String> = file_reader.lines().filter_map(io::Result::ok).collect();
+
+    line[0]
         .split(',')
-        .map(|s| s.parse::<usize>().unwrap())
-        .collect();
-
-    program
+        .map(|line| line.parse::<usize>().unwrap())
+        .collect()
 }
 
 fn run_program(program: &Vec<usize>, noun: usize, verb: usize) -> usize {

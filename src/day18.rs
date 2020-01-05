@@ -209,7 +209,7 @@ fn shortest_distance_to_all_keys(
 
                 let current_k: Vec<char> = current
                     .iter()
-                    .map(|r| -> char if r == &c { k } else { *r })
+                    .map(|r| if r == &c { k } else { *r })
                     .collect();
 
                 let remaining_distance = shortest_distance_to_all_keys(

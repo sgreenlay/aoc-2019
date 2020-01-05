@@ -2,21 +2,6 @@ use ascii;
 
 use crate::intcode::{VirtualMachine, VirtualMachineState, load_program};
 
-fn load_program(filename: String) -> Vec<i128> {
-    fs::read_to_string(filename)
-        .expect("Can't read file")
-        .split(',')
-        .filter_map(|s| {
-            let v = s.parse::<i128>();
-            if v.is_err() {
-                None
-            } else {
-                Some(v.unwrap())
-            }
-        })
-        .collect()
-}
-
 fn run_program(program: &Vec<i128>, script: &Vec<&str>) {
     let mut vm = VirtualMachine::new(&program);
 
