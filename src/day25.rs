@@ -27,23 +27,6 @@ impl Direction {
     }
 }
 
-fn move_in_direction(p: &(i64, i64), d: &Direction) -> (i64, i64) {
-    match d {
-        Direction::North => {
-            (p.0, p.1 - 1)
-        },
-        Direction::South => {
-            (p.0, p.1 + 1)
-        },
-        Direction::East => {
-            (p.0 + 1, p.1)
-        },
-        Direction::West => {
-            (p.0 - 1, p.1)
-        },
-    }
-}
-
 impl fmt::Display for Direction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -55,10 +38,17 @@ impl fmt::Display for Direction {
     }
 }
 
-fn run_interactive(vm: &mut VirtualMachine) {
+fn run_interactive(
+    vm: &mut VirtualMachine,
+    output: &mut String
+) {
     loop {
         match vm.run() {
             VirtualMachineState::WaitForInput => {
+                if !output.is_empty() {
+                    print!("{}", output);
+                    *output = String::new();
+                }
                 let mut input = String::new();
                 match io::stdin().read_line(&mut input) {
                     Ok(_) => {
@@ -74,7 +64,7 @@ fn run_interactive(vm: &mut VirtualMachine) {
             },
             VirtualMachineState::Output(v) => {
                 let ch = (v as u8) as char;
-                print!("{}", ch);
+                output.push(ch);
             },
             VirtualMachineState::Terminated => {
                 break;
@@ -207,15 +197,68 @@ fn visit_all_the_rooms(
     }
 }
 
+fn run_with_input(
+    vm: &mut VirtualMachine,
+    output: &mut String,
+    inputs: &mut Vec<String>
+) {
+    loop {
+        match vm.run() {
+            VirtualMachineState::WaitForInput => {
+                if inputs.is_empty() {
+                    break;
+                } else {
+                    let input = inputs.remove(0);
+                    for ch in input.chars() {
+                        vm.add_input(ch as i128);
+                    }
+                    *output = String::new();
+                }
+            },
+            VirtualMachineState::Output(v) => {
+                let ch = (v as u8) as char;
+
+                output.push(ch);
+            },
+            VirtualMachineState::Terminated => {
+                break;
+            }
+        }
+    }
+}
+
+fn generate_all_combinations<T: Clone>(arr: Vec<T>) -> Vec<Vec<T>> {
+    let mut output: Vec<Vec<T>> = Vec::new();
+
+    let n = arr.len();
+    let i_max = 2u32.pow(n as u32);
+
+    for i in 0..i_max {
+        let mut entry: Vec<T> = Vec::new();
+        let mut m = 1;
+        for j in 0..n {
+            if (i & m) > 0 {		
+                entry.push(arr[j].clone());
+            }
+            m = m << 1;
+        }
+        if !entry.is_empty() {
+            output.push(entry);
+        }
+    }
+    return output;
+}
+
 pub fn run() {
     let program = load_program("data/day25.txt".to_string());
     let mut vm = VirtualMachine::new(&program);
 
+    let mut output: String = String::new();
+
     let interactive = false;
     if interactive {
-        run_interactive(&mut vm);
+        run_interactive(&mut vm, &mut output);
     } else {
-        let mut output: String = String::new();
         let mut rooms: HashMap<String, (Vec<Direction>, Vec<String>)> = HashMap::new();
 
         let mut cache_room = |name: &String, directions: &Vec<Direction>, items: &Vec<String>, _: &mut Vec<String>| -> bool {
@@ -256,10 +299,24 @@ pub fn run() {
         visit_all_the_rooms(&mut vm, &mut output, &mut find_the_security_checkpoint);
 
         let (current, _, _) = parse_output(&output);
-        println!("{}", current.unwrap());
+
+        let mut input: Vec<String> = vec![
+            "inv\n".to_string()
+        ];
+        run_with_input(&mut vm, &mut output, &mut input);
+        let (_, _, mut items) = parse_output(&output);
+        items.sort();
+
+        let item_combinations = generate_all_combinations(items);
+        for items in item_combinations {
+            println!("Trying:");
+            for i in items {
+                println!("{}", i);
+            }
+        }
 
         // TODO: Find the right combination of items...
 
-        run_interactive(&mut vm);
+        run_interactive(&mut vm, &mut output);
     }
 }
