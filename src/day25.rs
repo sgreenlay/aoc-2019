@@ -227,7 +227,7 @@ fn run_with_input(
     }
 }
 
-fn generate_all_combinations<T: Clone>(arr: Vec<T>) -> Vec<Vec<T>> {
+fn generate_all_combinations<T: Clone>(arr: &Vec<T>) -> Vec<Vec<T>> {
     let mut output: Vec<Vec<T>> = Vec::new();
 
     let n = arr.len();
@@ -298,8 +298,7 @@ pub fn run() {
         };
         visit_all_the_rooms(&mut vm, &mut output, &mut find_the_security_checkpoint);
 
-        let (current, _, _) = parse_output(&output);
-
+        // Get all possible combinations of all items
         let mut input: Vec<String> = vec![
             "inv\n".to_string()
         ];
@@ -307,16 +306,35 @@ pub fn run() {
         let (_, _, mut items) = parse_output(&output);
         items.sort();
 
-        let item_combinations = generate_all_combinations(items);
+        let item_combinations = generate_all_combinations(&items);
+
+        // Try all possible combinations of items
+        let mut drop_all_items: Vec<String> = items.iter().map(|item| {
+            format!("drop {}\n", item)
+        }).collect();
+        run_with_input(&mut vm, &mut output, &mut drop_all_items);
+
+        // Use a save state to find the correct set of items to cross the pressure plate
+        let save_state = vm.clone();
         for items in item_combinations {
-            println!("Trying:");
-            for i in items {
-                println!("{}", i);
+            let mut pick_up_items: Vec<String> = items.iter().map(|item| {
+                format!("take {}\n", item)
+            }).collect();
+            run_with_input(&mut vm, &mut output, &mut pick_up_items);
+
+            let mut input: Vec<String> = vec![
+                "south\n".to_string()
+            ];
+            run_with_input(&mut vm, &mut output, &mut input);
+            let (name, _, _) = parse_output(&output);
+            
+            if !name.unwrap().eq(&"== Security Checkpoint ==") {
+                break;
             }
+
+            vm = save_state.clone();
         }
 
-        // TODO: Find the right combination of items...
-
-        run_interactive(&mut vm, &mut output);
+        println!("{}", output);
     }
 }

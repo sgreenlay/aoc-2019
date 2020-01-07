@@ -15,7 +15,7 @@
                     "value" : "1",
                 }
             ],
-            "externalConsole": true,
+            "externalConsole": false,
             "logging": {
                 "exceptions": true,
                 "moduleLoad": false,
